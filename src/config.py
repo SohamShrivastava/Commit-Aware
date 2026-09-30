@@ -31,12 +31,12 @@ PROJECTS = {
 
 # ── Gemini API ──
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL = "gemini-3.8-flash"
+GEMINI_MODEL = "gemini-3.5-flash"
 
-# Free-tier limits — adjust RPM based on your model's free tier
-GEMINI_RPM = 4            # safe for free tier (most models allow 5 RPM)
-GEMINI_BATCH_SIZE = 1     # 1 test per request = much better JSON reliability
-GEMINI_MAX_OUTPUT_TOKENS = 512   # single test needs less output
+# Paid tier — much higher limits than free
+GEMINI_RPM = 60            # paid tier allows 1000+ RPM, using 60 to be safe
+GEMINI_BATCH_SIZE = 1      # 1 test per request = reliable plain-text responses
+GEMINI_MAX_OUTPUT_TOKENS = 512
 
 # ── Embedding model ──
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"  # sentence-transformers, runs locally, free

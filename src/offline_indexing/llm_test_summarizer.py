@@ -1,5 +1,5 @@
 """
-Step 2: Summarize test files using Google Gemini (free tier).
+Step 2: Summarize test files using Google Gemini API.
 
 Reads unique_tests.jsonl, sends ONE test per request to Gemini,
 and writes test_summaries.jsonl. Supports resume — re-run to pick up
@@ -13,7 +13,11 @@ import json
 import time
 import argparse
 import sys
+import warnings
 from pathlib import Path
+
+# Suppress the AFC (automatic function calling) warning from google-genai
+warnings.filterwarnings("ignore", message=".*automatic function calling.*")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from src.config import (
@@ -79,6 +83,7 @@ def summarize_tests(project_key, limit=None):
 
     total_input_tokens = 0
     total_output_tokens = 0
+    total_thinking_tokens = 0
     total_written = len(already_done)
 
     with open(out_path, "a", encoding="utf-8") as out_f:
@@ -106,6 +111,7 @@ def summarize_tests(project_key, limit=None):
                         config={
                             "max_output_tokens": GEMINI_MAX_OUTPUT_TOKENS,
                             "temperature": 0.2,
+                            "thinking_config": {"thinking_budget": 0},  # DISABLE thinking to avoid huge costs
                         },
                     )
                     break
@@ -131,10 +137,15 @@ def summarize_tests(project_key, limit=None):
 
             summary = response.text.strip()
 
-            # Track token usage
+            # Track token usage (including thinking tokens)
             if hasattr(response, "usage_metadata") and response.usage_metadata:
-                total_input_tokens += getattr(response.usage_metadata, "prompt_token_count", 0) or 0
-                total_output_tokens += getattr(response.usage_metadata, "candidates_token_count", 0) or 0
+                um = response.usage_metadata
+                total_input_tokens += getattr(um, "prompt_token_count", 0) or 0
+                total_output_tokens += getattr(um, "candidates_token_count", 0) or 0
+                thinking = getattr(um, "thoughts_token_count", 0) or 0
+                if thinking > 0:
+                    total_thinking_tokens += thinking
+                    print(f"  ⚠️ {thinking} thinking tokens used!", end=" ", flush=True)
 
             record = {
                 "test_path": test_path,
@@ -150,7 +161,13 @@ def summarize_tests(project_key, limit=None):
             time.sleep(delay)
 
     print(f"\nDone. {total_written} summaries written to {out_path}")
-    print(f"Token usage: ~{total_input_tokens} input, ~{total_output_tokens} output")
+    print(f"Token usage: ~{total_input_tokens} input, ~{total_output_tokens} output, ~{total_thinking_tokens} thinking")
+    # Cost estimate (gemini-3.5-flash pricing: $0.15/1M input, $0.60/1M output, $3.50/1M thinking)
+    cost_input = total_input_tokens * 0.15 / 1_000_000
+    cost_output = total_output_tokens * 0.60 / 1_000_000
+    cost_thinking = total_thinking_tokens * 3.50 / 1_000_000
+    total_cost = cost_input + cost_output + cost_thinking
+    print(f"Estimated cost: ${total_cost:.4f} (input=${cost_input:.4f}, output=${cost_output:.4f}, thinking=${cost_thinking:.4f})")
 
 
 if __name__ == "__main__":
