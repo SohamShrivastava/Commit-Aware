@@ -1,0 +1,42 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ===== Virtual Environments =====
+myenv/
+venv/
+.venv/
+env/
+
+# ===== Environment Variables =====
+.env
+.env.*
+
+# ===== Dataset (too large for GitHub) =====
+TCP-CI-dataset-v2/
+
+# ===== Jupyter Notebook Checkpoints =====
+.ipynb_checkpoints/
+
+# ===== macOS =====
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ===== IDE / Editor =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===== Distribution / Packaging =====
+dist/
+build/
+*.egg-info/
+*.egg
+
+# ===== Misc =====
+*.log
