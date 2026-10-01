@@ -39,7 +39,7 @@ GEMINI_BATCH_SIZE = 1      # 1 test per request = reliable plain-text responses
 GEMINI_MAX_OUTPUT_TOKENS = 512
 
 # ── Embedding model ──
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"  # sentence-transformers, runs locally, free
+EMBEDDING_MODEL = "gemini-embedding-2"  # 3072 dims, via API, cost tracked for paper
 
 # ── Summarization prompt (single test — no JSON array needed) ──
 SUMMARIZE_PROMPT = """Analyze this Java test file from a CI/CD pipeline.
