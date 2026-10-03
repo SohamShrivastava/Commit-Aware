@@ -13,6 +13,7 @@ env/
 # ===== Environment Variables =====
 .env
 .env.*
+*.zip
 
 # ===== Dataset (too large for GitHub) =====
 TCP-CI-dataset-v2/
@@ -40,3 +41,5 @@ build/
 
 # ===== Misc =====
 *.log
+files/extracted_dataset_log4j.jsonl
+files/extracted_dataset_shardingsphere.jsonl
