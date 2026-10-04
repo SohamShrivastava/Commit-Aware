@@ -29,6 +29,7 @@ from google import genai
 def embed_tests(project_key):
     proj = PROJECTS[project_key]
     project_folder = proj["folder"]
+    unique_tests_path = project_folder / "unique_tests.jsonl"
     summaries_path = project_folder / "test_summaries.jsonl"
     embeddings_path = project_folder / "test_embeddings.npz"
     index_path = project_folder / "test_index.jsonl"
@@ -36,6 +37,12 @@ def embed_tests(project_key):
     if not summaries_path.exists():
         print(f"ERROR: {summaries_path} not found. Run llm_test_summarizer first.")
         sys.exit(1)
+    if not unique_tests_path.exists():
+        print(f"ERROR: {unique_tests_path} not found. Run extract_unique_tests first.")
+        sys.exit(1)
+
+    with open(unique_tests_path, encoding="utf-8") as f:
+        valid_test_paths = {json.loads(line)["test_path"] for line in f}
 
     # Setup Gemini client
     if not GEMINI_API_KEY:
@@ -49,10 +56,18 @@ def embed_tests(project_key):
     with open(summaries_path, encoding="utf-8") as f:
         for line in f:
             rec = json.loads(line)
-            if rec.get("summary"):
+            if rec.get("summary") and rec.get("test_path") in valid_test_paths:
                 test_entries.append(rec)
 
-    print(f"  Loaded {len(test_entries)} test summaries")
+    summarized_paths = {entry["test_path"] for entry in test_entries}
+    missing_summaries = valid_test_paths - summarized_paths
+    if missing_summaries:
+        examples = ", ".join(sorted(missing_summaries)[:5])
+        raise ValueError(
+            f"{len(missing_summaries)} valid tests have no summary. Examples: {examples}"
+        )
+
+    print(f"  Loaded {len(test_entries)} summaries for valid test files")
 
     if not test_entries:
         print("No summaries found. Nothing to embed.")
@@ -85,7 +100,12 @@ def embed_tests(project_key):
                 else:
                     raise
 
-        batch_embeddings = [emb.values for emb in result.embeddings]
+        batch_embeddings = [emb.values for emb in (result.embeddings or [])]
+        if len(batch_embeddings) != len(batch):
+            raise RuntimeError(
+                f"Expected {len(batch)} embeddings in batch {batch_num}, "
+                f"received {len(batch_embeddings)}"
+            )
         all_embeddings.extend(batch_embeddings)
 
         print(f"  Batch {batch_num}/{total_batches}: {len(batch)} embeddings ({len(batch_embeddings[0])} dims)")
@@ -93,6 +113,11 @@ def embed_tests(project_key):
         # Small delay to respect rate limits
         if i + BATCH_SIZE < len(test_entries):
             time.sleep(0.5)
+
+    if len(all_embeddings) != len(test_entries):
+        raise RuntimeError(
+            f"Expected {len(test_entries)} embeddings, received {len(all_embeddings)}"
+        )
 
     embeddings = np.array(all_embeddings, dtype=np.float32)
 
