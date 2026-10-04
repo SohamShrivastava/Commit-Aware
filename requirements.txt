@@ -1,5 +1,5 @@
 # Core dependencies for the LLM test selection pipeline
-google-generativeai
+google-genai
 sentence-transformers
 numpy
 python-dotenv

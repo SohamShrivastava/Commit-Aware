@@ -12,6 +12,7 @@ import json
 import subprocess
 import argparse
 import sys
+import csv
 from pathlib import Path
 from collections import defaultdict
 
@@ -35,25 +36,36 @@ def extract_unique_tests(project_key):
     proj = PROJECTS[project_key]
     project_folder = proj["folder"]
     repo_path = project_folder / proj["repo_subfolder"]
-    dataset_path = project_folder / "extracted_dataset.jsonl"
+    builds_path = project_folder / "builds.csv"
     out_path = project_folder / "unique_tests.jsonl"
 
-    print(f"Scanning {dataset_path} for unique test files...")
+    print(f"Scanning build metadata under {project_folder / 'analysis'} for test files...")
 
-    # Pass 1: find all unique test paths and the LATEST commit for each
-    # (latest = last build in chronological order where the test appeared)
-    test_latest_commit = {}   # test_path -> (commit_sha, build_index)
+    # Use TCP-CI's explicit TEST/SRC label rather than guessing from filenames.
+    test_latest_commit = {}
     total_builds = 0
+    missing_metadata = 0
 
-    with open(dataset_path, encoding="utf-8") as f:
-        for i, line in enumerate(f):
-            record = json.loads(line)
-            commit = record["commit_sha"]
-            for test_path in record["all_test_files_at_commit"]:
-                test_latest_commit[test_path] = commit
-            total_builds = i + 1
+    with open(builds_path, encoding="utf-8", errors="replace", newline="") as builds_file:
+        for build in csv.DictReader(builds_file):
+            total_builds += 1
+            build_id = build.get("id") or build.get("tr_build_id")
+            commits = build.get("commits") or build.get("git_all_built_commits") or ""
+            commit = commits.split("#")[-1].strip()
+            metadata_path = project_folder / "analysis" / str(build_id) / "metadata.csv"
+
+            if not commit or not metadata_path.exists():
+                missing_metadata += 1
+                continue
+
+            with open(metadata_path, encoding="utf-8", errors="replace", newline="") as metadata_file:
+                for row in csv.DictReader(metadata_file):
+                    if row.get("EntityType", "").upper() == "TEST" and row.get("FilePath"):
+                        test_latest_commit[row["FilePath"]] = commit
 
     print(f"  Found {len(test_latest_commit)} unique test files across {total_builds} builds")
+    if missing_metadata:
+        print(f"  WARNING: {missing_metadata} builds had no commit or metadata and were skipped")
 
     # Pass 2: extract source code for each test at its latest commit
     written = 0
@@ -61,7 +73,7 @@ def extract_unique_tests(project_key):
 
     with open(out_path, "w", encoding="utf-8") as out_f:
         for i, (test_path, commit) in enumerate(test_latest_commit.items()):
-            source = run_git(repo_path, ["show", f"{commit}:{test_path}"])
+            source = run_git(repo_path, ["cat-file", "-p", f"{commit}:{test_path}"])
 
             if source is None:
                 failed += 1

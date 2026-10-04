@@ -38,26 +38,25 @@ def run_git(repo_path, args):
 
 
 def get_commit_diff(repo_path, commit_sha):
-    return run_git(repo_path, ["diff", f"{commit_sha}^!", "--unified=3"])
+    commit_line = run_git(repo_path, ["rev-list", "--parents", "-n", "1", commit_sha])
+    if not commit_line:
+        return None
+    commit_parts = commit_line.strip().split()
+    if len(commit_parts) > 1:
+        return run_git(repo_path, ["diff", commit_parts[1], commit_sha, "--unified=3"])
+    return run_git(repo_path, ["diff-tree", "--root", "-p", "--no-commit-id", "-r", commit_sha])
 
 
 def get_changed_files(repo_path, commit_sha):
-    out = run_git(repo_path, ["diff-tree", "--no-commit-id", "--name-only", "-r", commit_sha])
+    commit_line = run_git(repo_path, ["rev-list", "--parents", "-n", "1", commit_sha])
+    if not commit_line:
+        return []
+    commit_parts = commit_line.strip().split()
+    if len(commit_parts) > 1:
+        out = run_git(repo_path, ["diff", "--name-only", commit_parts[1], commit_sha])
+    else:
+        out = run_git(repo_path, ["diff-tree", "--root", "--no-commit-id", "--name-only", "-r", commit_sha])
     return [f for f in out.strip().split("\n") if f] if out else []
-
-
-def is_test_file(path):
-    lowered = path.lower()
-    return (
-        "test" in lowered
-        and (lowered.endswith(".java") or lowered.endswith(".py") or lowered.endswith(".js"))
-    )
-
-
-def list_all_files_at_commit(repo_path, commit_sha):
-    """All file paths that exist in the repo AT this commit (full tree, not just changed files)."""
-    out = run_git(repo_path, ["ls-tree", "-r", "--name-only", commit_sha])
-    return out.strip().split("\n") if out else []
 
 
 def get_file_content_at_commit(repo_path, commit_sha, file_path):
@@ -123,11 +122,11 @@ def load_exe_outcomes(project_folder, id_to_path):
     return outcomes_by_build
 
 
-def build_dataset(project_folder, repo_subfolder, limit=None):
+def build_dataset(project_folder, repo_subfolder, limit=None, output_path=None):
     project_folder = Path(project_folder)
     repo_path = project_folder / repo_subfolder
     builds_csv = project_folder / "builds.csv"
-    out_path = project_folder / "extracted_dataset.jsonl"
+    out_path = Path(output_path) if output_path else project_folder / "extracted_dataset.jsonl"
 
     print(f"Loading id_map.csv ...")
     id_to_path = load_id_map(project_folder)
@@ -188,16 +187,12 @@ def build_dataset(project_folder, repo_subfolder, limit=None):
                 continue  # commit not found in local repo -- skip, don't crash
 
             changed_files = get_changed_files(repo_path, commit_sha)
-            all_files_at_commit = list_all_files_at_commit(repo_path, commit_sha)
-            all_test_files = [f for f in all_files_at_commit if is_test_file(f)]
-
             record = {
                 "build_id": build_id,
                 "commit_sha": commit_sha,
                 "started_at": first_present(row, "started_at", "gh_build_started_at"),
                 "diff_text": diff_text,
                 "changed_files": changed_files,
-                "all_test_files_at_commit": all_test_files,  # every test that existed, not just changed ones
                 "test_outcomes": outcomes_by_build.get(build_id, []),
             }
             out_f.write(json.dumps(record) + "\n")
@@ -217,6 +212,7 @@ if __name__ == "__main__":
     parser.add_argument("project_folder", help="Path to the project's folder (containing builds.csv, exe.csv, and the repo subfolder)")
     parser.add_argument("repo_subfolder", help="Name of the repo subfolder inside project_folder (the one with .git in it)")
     parser.add_argument("--limit", type=int, default=None, help="Only process the first N builds (for testing)")
+    parser.add_argument("--output", help="Output JSONL path; use a separate path for test runs")
     args = parser.parse_args()
 
-    build_dataset(args.project_folder, args.repo_subfolder, args.limit)
+    build_dataset(args.project_folder, args.repo_subfolder, args.limit, args.output)
