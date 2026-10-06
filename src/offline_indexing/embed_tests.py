@@ -24,15 +24,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from src.config import PROJECTS, EMBEDDING_MODEL, GEMINI_API_KEY
 
 from google import genai
+from google.genai import types
 
 
-def embed_tests(project_key):
+def embed_tests(project_key, summaries_input=None, embeddings_output=None, index_output=None):
     proj = PROJECTS[project_key]
     project_folder = proj["folder"]
     unique_tests_path = project_folder / "unique_tests.jsonl"
-    summaries_path = project_folder / "test_summaries.jsonl"
-    embeddings_path = project_folder / "test_embeddings.npz"
-    index_path = project_folder / "test_index.jsonl"
+    summaries_path = Path(summaries_input) if summaries_input else project_folder / "test_summaries.jsonl"
+    embeddings_path = Path(embeddings_output) if embeddings_output else project_folder / "test_embeddings.npz"
+    index_path = Path(index_output) if index_output else project_folder / "test_index.jsonl"
 
     if not summaries_path.exists():
         print(f"ERROR: {summaries_path} not found. Run llm_test_summarizer first.")
@@ -77,11 +78,12 @@ def embed_tests(project_key):
     print(f"Generating embeddings using {EMBEDDING_MODEL}...")
     BATCH_SIZE = 100  # Gemini supports up to 100 texts per request
     all_embeddings = []
-    total_tokens = 0
-
     for i in range(0, len(test_entries), BATCH_SIZE):
         batch = test_entries[i:i + BATCH_SIZE]
-        batch_texts = [t["summary"] for t in batch]
+        batch_contents = [
+            types.Content(parts=[types.Part.from_text(text=test["summary"])])
+            for test in batch
+        ]
         batch_num = i // BATCH_SIZE + 1
         total_batches = (len(test_entries) + BATCH_SIZE - 1) // BATCH_SIZE
 
@@ -90,7 +92,7 @@ def embed_tests(project_key):
             try:
                 result = client.models.embed_content(
                     model=EMBEDDING_MODEL,
-                    contents=batch_texts,
+                    contents=batch_contents,
                 )
                 break
             except Exception as e:
@@ -153,14 +155,14 @@ def embed_tests(project_key):
         name_j = test_entries[j]["test_path"].split("/")[-1]
         print(f"  {name_i} <-> {name_j}: similarity={sim:.4f}")
 
-    # Cost estimate
-    est_tokens = sum(len(t["summary"].split()) * 1.3 for t in test_entries)
-    print(f"\nEstimated token usage: ~{int(est_tokens)} tokens")
-    print(f"Estimated cost: ${est_tokens * 0.006 / 1000:.4f}")
+    print("Check the Gemini billing page for the actual embedding charge.")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("project", choices=list(PROJECTS.keys()), help="Project key")
+    parser.add_argument("--summaries", help="Use a specific summaries JSONL file")
+    parser.add_argument("--output", help="Embeddings output path")
+    parser.add_argument("--index-output", help="Matching index output path")
     args = parser.parse_args()
-    embed_tests(args.project)
+    embed_tests(args.project, args.summaries, args.output, args.index_output)
