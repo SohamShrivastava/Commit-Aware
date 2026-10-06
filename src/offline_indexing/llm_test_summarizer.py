@@ -39,11 +39,19 @@ def setup_gemini():
     return client
 
 
-def summarize_tests(project_key, limit=None):
+def summarize_tests(project_key, limit=None, output_path=None, usage_path=None, fresh=False):
     proj = PROJECTS[project_key]
     project_folder = proj["folder"]
     tests_path = project_folder / "unique_tests.jsonl"
-    out_path = project_folder / "test_summaries.jsonl"
+    out_path = Path(output_path) if output_path else project_folder / "test_summaries.jsonl"
+    usage_path = Path(usage_path) if usage_path else out_path.with_name(
+        f"{out_path.stem}_usage.jsonl"
+    )
+
+    if fresh and out_path.exists():
+        raise FileExistsError(f"Fresh output already exists; choose another path: {out_path}")
+    if fresh and usage_path.exists():
+        raise FileExistsError(f"Fresh usage log already exists; choose another path: {usage_path}")
 
     if not tests_path.exists():
         print(f"ERROR: {tests_path} not found. Run extract_unique_tests first.")
@@ -86,7 +94,10 @@ def summarize_tests(project_key, limit=None):
     total_thinking_tokens = 0
     total_written = len(already_done)
 
-    with open(out_path, "a", encoding="utf-8") as out_f:
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    usage_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "a", encoding="utf-8") as out_f, \
+            open(usage_path, "a", encoding="utf-8") as usage_f:
         for i, test in enumerate(remaining):
             test_path = test["test_path"]
             source = test["source_code"]
@@ -131,21 +142,28 @@ def summarize_tests(project_key, limit=None):
                             print("SKIPPED")
                         time.sleep(10)
 
+            if response is not None:
+                usage = getattr(response, "usage_metadata", None)
+                prompt_tokens = getattr(usage, "prompt_token_count", 0) or 0
+                output_tokens = getattr(usage, "candidates_token_count", 0) or 0
+                thinking_tokens = getattr(usage, "thoughts_token_count", 0) or 0
+                total_input_tokens += prompt_tokens
+                total_output_tokens += output_tokens
+                total_thinking_tokens += thinking_tokens
+                usage_f.write(json.dumps({
+                    "test_path": test_path,
+                    "model": GEMINI_MODEL,
+                    "prompt_tokens": prompt_tokens,
+                    "output_tokens": output_tokens,
+                    "thinking_tokens": thinking_tokens,
+                }) + "\n")
+                usage_f.flush()
+
             if response is None or not response.text:
                 print("SKIPPED (no response)")
                 continue
 
             summary = response.text.strip()
-
-            # Track token usage (including thinking tokens)
-            if hasattr(response, "usage_metadata") and response.usage_metadata:
-                um = response.usage_metadata
-                total_input_tokens += getattr(um, "prompt_token_count", 0) or 0
-                total_output_tokens += getattr(um, "candidates_token_count", 0) or 0
-                thinking = getattr(um, "thoughts_token_count", 0) or 0
-                if thinking > 0:
-                    total_thinking_tokens += thinking
-                    print(f"  ⚠️ {thinking} thinking tokens used!", end=" ", flush=True)
 
             record = {
                 "test_path": test_path,
@@ -162,17 +180,16 @@ def summarize_tests(project_key, limit=None):
 
     print(f"\nDone. {total_written} summaries written to {out_path}")
     print(f"Token usage: ~{total_input_tokens} input, ~{total_output_tokens} output, ~{total_thinking_tokens} thinking")
-    # Cost estimate (gemini-3.5-flash pricing: $0.15/1M input, $0.60/1M output, $3.50/1M thinking)
-    cost_input = total_input_tokens * 0.15 / 1_000_000
-    cost_output = total_output_tokens * 0.60 / 1_000_000
-    cost_thinking = total_thinking_tokens * 3.50 / 1_000_000
-    total_cost = cost_input + cost_output + cost_thinking
-    print(f"Estimated cost: ${total_cost:.4f} (input=${cost_input:.4f}, output=${cost_output:.4f}, thinking=${cost_thinking:.4f})")
+    print(f"Per-response token log: {usage_path}")
+    print("Use the provider's billing records for the actual amount charged.")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("project", choices=list(PROJECTS.keys()), help="Project key")
     parser.add_argument("--limit", type=int, default=None, help="Only summarize first N tests")
+    parser.add_argument("--output", help="Summary JSONL output path")
+    parser.add_argument("--usage-log", help="Per-response token usage JSONL path")
+    parser.add_argument("--fresh", action="store_true", help="Start a new run; refuse to overwrite output files")
     args = parser.parse_args()
-    summarize_tests(args.project, args.limit)
+    summarize_tests(args.project, args.limit, args.output, args.usage_log, args.fresh)

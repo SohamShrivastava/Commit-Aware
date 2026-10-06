@@ -30,7 +30,7 @@ PROJECTS = {
 }
 
 # ── Gemini API ──
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AQ.Ab8RN6KVsT5NNZWGwR0SN6WtNlnk_5_YDv1uW9V-E3FUf0QjCQ")
 GEMINI_MODEL = "gemini-3.5-flash"
 
 # Paid tier — much higher limits than free
