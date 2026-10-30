@@ -30,8 +30,9 @@ PROJECTS = {
 }
 
 # ── Gemini API ──
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_MODEL = "gemini-3.5-flash"
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_MODEL = "gemini-3.6-flash"
+
 
 # Paid tier — much higher limits than free
 GEMINI_RPM = 60            # paid tier allows 1000+ RPM, using 60 to be safe

@@ -27,6 +27,8 @@ import re
 from pathlib import Path
 from collections import defaultdict
 
+os.environ.setdefault("LOKY_MAX_CPU_COUNT", "4")
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from src.config import PROJECTS
 
@@ -192,6 +194,10 @@ class TCPCIHistoricalBaseline:
         The label is 1 if verdict == "1" (failure), 0 otherwise.
         """
         try:
+            from sklearn.ensemble import HistGradientBoostingClassifier
+            has_hist = True
+        except ImportError:
+            has_hist = False
             from sklearn.ensemble import GradientBoostingClassifier
         except ImportError:
             print("ERROR: scikit-learn is required for Baseline C. Install with: pip install scikit-learn")
@@ -200,13 +206,19 @@ class TCPCIHistoricalBaseline:
         X_rows = []
         y_rows = []
 
-        # Determine feature names from the first record with features
+        # Determine feature names from the first record with features, strictly excluding target/metadata columns
+        # and post-execution measurements like Duration of current execution
+        IGNORED_FEATURE_KEYS = {
+            "verdict", "testname", "buildid", "outcome", "target", "label",
+            "test_name", "build_id", "verdict_str", "test_id", "project", "id",
+            "duration"
+        }
         feature_names = None
         for rec in training_records:
             for outcome in rec.get("test_outcomes", []):
                 feats = outcome.get("features")
                 if feats:
-                    feature_names = sorted(feats.keys())
+                    feature_names = [k for k in sorted(feats.keys()) if k.lower() not in IGNORED_FEATURE_KEYS]
                     break
             if feature_names:
                 break
@@ -219,7 +231,7 @@ class TCPCIHistoricalBaseline:
             return
 
         self.feature_names = feature_names
-        print(f"  Training Baseline C with {len(feature_names)} features...")
+        print(f"  Training Baseline C with {len(feature_names)} clean features (target & post-execution leakage strictly excluded)...")
 
         for rec in training_records:
             for outcome in rec.get("test_outcomes", []):
@@ -248,13 +260,20 @@ class TCPCIHistoricalBaseline:
             self._is_fitted = False
             return
 
-        self.model = GradientBoostingClassifier(
-            n_estimators=100,
-            max_depth=4,
-            learning_rate=0.1,
-            subsample=0.8,
-            random_state=42,
-        )
+        if has_hist:
+            self.model = HistGradientBoostingClassifier(
+                max_iter=100,
+                learning_rate=0.1,
+                random_state=42,
+            )
+        else:
+            self.model = GradientBoostingClassifier(
+                n_estimators=100,
+                max_depth=4,
+                learning_rate=0.1,
+                subsample=0.8,
+                random_state=42,
+            )
         self.model.fit(X_rows, y_rows)
         self._is_fitted = True
         print("  Baseline C model trained successfully.")

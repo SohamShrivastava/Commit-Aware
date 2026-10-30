@@ -14,6 +14,7 @@ env/
 .env
 .env.*
 *.zip
+*.pdf
 
 # ===== Dataset (too large for GitHub) =====
 TCP-CI-dataset-v2/
@@ -43,3 +44,6 @@ build/
 *.log
 files/extracted_dataset_log4j.jsonl
 files/extracted_dataset_shardingsphere.jsonl
+scratch/
+test_api_key.py
+

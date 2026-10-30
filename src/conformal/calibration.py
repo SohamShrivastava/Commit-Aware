@@ -133,9 +133,25 @@ class ConformalCalibrator:
         print(f"  Similarity range: [{sim_min:.4f}, {sim_max:.4f}]")
         print(f"  Lambda grid: {LAMBDA_GRID_SIZE} candidates")
 
-        # For each candidate λ, compute the weighted empirical risk
+        # Finite-sample correction term (Angelopoulos et al. 2024 / Bates et al. 2021)
+        # Loss per build is bounded in [0, B] with B = 1.0 (fault miss-rate ∈ [0, 1]).
+        # In weighted conformal prediction (Tibshirani et al. 2019, Barber et al. 2023):
+        # Conformal risk upper bound for unseen build with weight w_{n+1} = 1.0:
+        #   R_w^conformal(λ) = (W * R_w(λ) + B) / (W + 1) <= α
+        #   <=> R_w(λ) <= ((W + 1) * α - B) / W
+        B = 1.0
+        finite_sample_inflation = B / (weight_sum + 1.0)
+        effective_alpha = max(0.0, ((weight_sum + 1.0) * self.alpha - B) / weight_sum)
+
+        print(f"  Finite-sample correction (Angelopoulos et al. / Bates et al.):")
+        print(f"    Weight sum W = {weight_sum:.2f}, Loss bound B = {B}")
+        print(f"    Inflation term B/(W+1) = {finite_sample_inflation:.6f}")
+        print(f"    Conservative empirical risk ceiling = {effective_alpha:.6f} (nominal alpha = {self.alpha})")
+
+        # For each candidate lambda, compute the weighted empirical risk
         best_lambda = sim_min  # Most conservative (select everything)
         best_risk = 1.0
+        best_conformal_risk = 1.0
         risk_curve = []
 
         for lam in lambda_candidates:
@@ -145,37 +161,58 @@ class ConformalCalibrator:
             for b_idx, build in enumerate(calibration_builds):
                 failures = [t for t in build["tests"] if t["is_failure"]]
                 if not failures:
-                    # No failures in this build → risk is 0 regardless of threshold
+                    # No failures in this build -> risk is 0 regardless of threshold
                     per_build_risk[b_idx] = 0.0
                     continue
 
-                # Count missed failures: failure tests with similarity < λ
+                # Count missed failures: failure tests with similarity < lam
                 missed = sum(1 for t in failures if t["similarity"] < lam)
                 per_build_risk[b_idx] = missed / len(failures)
 
             # Weighted average risk
-            weighted_risk = np.sum(weights * per_build_risk) / weight_sum
-            risk_curve.append((float(lam), float(weighted_risk)))
+            weighted_risk = float(np.sum(weights * per_build_risk) / weight_sum)
+            # Conservative finite-sample conformal risk upper bound
+            conformal_adjusted_risk = float((weight_sum * weighted_risk + B) / (weight_sum + 1.0))
+            # Store (lam, empirical_risk, conformal_adjusted_risk)
+            risk_curve.append((float(lam), weighted_risk, conformal_adjusted_risk))
 
-            # Track the largest λ that still satisfies R_w(λ) ≤ α
-            # (larger λ = more aggressive skipping = more savings)
-            if weighted_risk <= self.alpha:
+            # Track the largest lambda satisfying the conservative finite-sample conformal bound
+            if conformal_adjusted_risk <= self.alpha:
                 if lam >= best_lambda:
                     best_lambda = float(lam)
-                    best_risk = float(weighted_risk)
+                    best_risk = weighted_risk
+                    best_conformal_risk = conformal_adjusted_risk
 
         # If zero failures were observed across the entire calibration slice
         total_failures = sum(sum(1 for t in b["tests"] if t.get("is_failure")) for b in calibration_builds)
         if total_failures == 0:
             print("  NOTE: Zero failures observed in calibration slice. Setting conservative threshold lambda_hat = 0.35")
             self.lambda_hat = 0.35
+            self.finite_sample_info = {
+                "method": "Angelopoulos et al. (2024)",
+                "B": B,
+                "weight_sum": float(weight_sum),
+                "inflation_term": float(finite_sample_inflation),
+                "effective_alpha": float(effective_alpha),
+                "note": "Zero failures in calibration slice; fallback floor applied"
+            }
             return 0.35
 
         self.lambda_hat = best_lambda
         self.calibration_log = risk_curve
+        self.finite_sample_info = {
+            "method": "Angelopoulos et al. (2024) / Bates et al. (2021)",
+            "B": B,
+            "weight_sum": float(weight_sum),
+            "inflation_term": float(finite_sample_inflation),
+            "effective_alpha": float(effective_alpha),
+            "achieved_empirical_risk": float(best_risk),
+            "achieved_conformal_risk_upper_bound": float(best_conformal_risk),
+        }
 
         print(f"\n  Calibrated lambda_hat = {self.lambda_hat:.6f}")
-        print(f"  Achieved weighted risk: R_w(lambda_hat) = {best_risk:.6f} <= alpha = {self.alpha}")
+        print(f"  Achieved empirical risk: R_w(lambda_hat) = {best_risk:.6f}")
+        print(f"  Conservative conformal risk bound: R_w^conformal(lambda_hat) = {best_conformal_risk:.6f} <= alpha = {self.alpha}")
 
         return self.lambda_hat
 
@@ -314,6 +351,7 @@ def run_calibration(project_key, alpha=DEFAULT_ALPHA, rho=DEFAULT_RHO,
         "rho": rho,
         "lambda_hat": lambda_hat,
         "calibration_builds": len(records),
+        "finite_sample_correction": getattr(calibrator, "finite_sample_info", {}),
         "risk_curve": risk_curve,
     }
 
