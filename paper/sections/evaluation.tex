@@ -1,0 +1,31 @@
+\section{Evaluation Design}
+\label{sec:evaluation}
+
+\SecNote{Argues that the evaluation is chronological and separates tuning, calibration and evaluation, and maps the first three RQs one-to-one to the challenge requirements, with RQ4 as the culmination. Carried by split\_dataset.py, progress.md Section 3, and the benchmark paper.}
+
+\subsection{Research questions}
+
+\begin{itemize}
+    \item[\textbf{RQ1}] \textit{Safety.} Does the calibrated threshold respect the risk it targets, and what fault recall does that risk level deliver?
+    \item[\textbf{RQ2}] \textit{Evolution.} How does a threshold frozen at calibration behave on later builds, and what does online monitoring change?
+    \item[\textbf{RQ3}] \textit{Cost.} After offsetting tokens, what are the net savings, break-even horizon and feedback-time effect?
+    \item[\textbf{RQ4}] \textit{Contribution.} What does each layer add, and what does it cost to catch failures that have no history?
+\end{itemize}
+
+\subsection{Subjects}
+
+We use the TCP-CI benchmark of Yaraghi et al.~\cite{yaraghi2023tcpci}, cited by the challenge itself, and extend it with commit diffs and test sources recovered from the repositories. Diffs are computed against the first parent so that merge commits are not empty. Table~\ref{tab:subjects} summarizes the subjects. We split each project chronologically into a tuning slice (earliest 25\% of builds), a calibration slice (next 35\%) and an evaluation slice (latest 40\%). ShardingSphere is the main subject. Log4j2 has two failures in the evaluation slice and none before it, so we treat it as a case study with few failures and draw no general conclusion from its recall figures \Fix{N35: project\_plan.md planned 4--6 projects; the repository evaluates two}.
+
+\input{tables/subjects}
+
+\subsection{Baselines and configurations}
+
+We compare Run All, a path heuristic that selects tests sharing a module, parent directory or filename stem with a changed file, and the TCP-CI ranker, a gradient-boosted model on the benchmark's features (\texttt{duration} and target columns excluded), trained on the tuning slice and evaluated at a fixed top-50\% budget. The benchmark's feature set has 150 features, among them file coverage derived from static analysis and association rules, so this baseline goes beyond failure history. On Log4j2 the tuning slice has no failures, so no model can be trained and the code ranks tests in suite order; that row is not a learned ranker \Fix{N8}. We did not evaluate a dependency-based technique such as Ekstazi or STARTS \Fix{N42: expect reviewers to ask; plan mentioned a coverage baseline}.
+
+For \tool{} we report the semantic layer with fixed thresholds and with the calibrated $\hat\lambda$, the guard alone, the two combined at $\hat\lambda$ (Balanced), the two combined at a more aggressive threshold (High-Savings, 0.62 on ShardingSphere, 0.58 on Log4j2 \Fix{N15: how was this chosen? if on the evaluation slice, it is leakage}), and the full configuration with the LLM judge.
+
+\subsection{Metrics}
+
+\textit{Fault recall} is the fraction of test failures in the selected set, pooled across builds, known as test recall in predictive test selection at Facebook~\cite{machalica2019predictive}. We also need their \textit{change recall}, the fraction of failing builds in which at least one failure is caught \Fix{N31: not computed; need value per method}. \textit{Test reduction} is the fraction of executions skipped. APFD and Recall@Budget are computed on failing builds only and evaluate the ranking of the whole suite independently of the threshold, so they do not vary with $\lambda$ for a given ranking \Fix{N43: check identical Hybrid and Full rows}. For Run All, the code fixes APFD at 0.5 and Recall@Budget at the budget fraction instead of measuring them \Fix{N4}.
+
+All figures are from one run per configuration, with LLM decisions cached. \Fix{N31: need bootstrap confidence intervals over failing builds, and a repeat of the LLM judge to measure nondeterminism.}

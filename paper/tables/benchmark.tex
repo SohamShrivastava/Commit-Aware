@@ -1,0 +1,34 @@
+\begin{table*}[t]
+\centering
+\caption{Results on the evaluation slice. Recall counts are derived from the percentages. Net savings use $t_{\text{test}} = 5$\,s and exclude the one-time indexing cost. The Full row is at the billed live LLM rate, with the discounted batch rate in parentheses.}
+\label{tab:benchmark}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+\textbf{Method} & \textbf{Fault recall} & \textbf{APFD} & \textbf{Reduction} & \textbf{R@10\%} & \textbf{R@20\%} & \textbf{Net \$0.10/h} & \textbf{Net \$0.50/h} \\
+\midrule
+\multicolumn{8}{@{}l}{\textit{Apache ShardingSphere (420 builds, 34 failing, 239 failures)}} \\
+Run All & 100.00\% (239) & 0.5000 \Fix{N4} & 0.00\% & 10.00\% & 20.00\% & $-$0.08 \Fix{N27} & $-$0.08 \\
+Path heuristic & 6.69\% (16) & 0.2131 & 79.52\% & 3.68\% & 6.62\% & +39.05 & +195.57 \\
+TCP-CI ranker, top 50\% & 99.58\% (238) & 0.9771 & 50.03\% & 94.75\% & 97.44\% & +24.53 & +123.09 \\
+Semantic, fixed thresholds & 100.00\% (239) & 0.2861 & 0.00\% & 3.03\% & 5.82\% & $-$0.08 & $-$0.08 \\
+Semantic, $\hat\lambda = 0.5272$ & 59.41\% (142) & 0.2861 & 29.56\% & 3.03\% & 5.82\% & +14.46 & +72.62 \\
+Guard only & 92.47\% (221) & 0.9580 & 99.93\% & 94.56\% & 95.57\% & +49.09 & +245.77 \\
+Hybrid Balanced, $\lambda = 0.53$ & 99.58\% (238) & 0.9795 & 29.54\% & 96.55\% & 97.79\% & +14.45 & +72.57 \\
+Hybrid High-Savings, $\lambda = 0.62$ & 94.14\% (225) & 0.9795 & 91.77\% & 96.55\% & 97.79\% & +45.07 & +225.71 \\
+Full, with LLM judge \Fix{N10} & 99.16\% (237) & 0.9795 & 42.63\% & 96.55\% & 97.79\% & +7.69 (+20.23) \Fix{N18} & +91.25 (+104.15) \Fix{N18} \\
+\midrule
+\multicolumn{8}{@{}l}{\textit{Apache Log4j2 (177 builds, 2 failing, 2 failures). A case study with few failures; one failure moves recall by 50 points.}} \\
+Run All & 100.00\% (2) & 0.5000 \Fix{N4} & 0.00\% & 10.00\% & 20.00\% & $-$0.04 \Fix{N27} & $-$0.04 \\
+Path heuristic & 50.00\% (1) & 0.5585 & 76.71\% & 50.00\% & 50.00\% & +11.41 & +57.20 \\
+Suite order, top 50\% \Fix{N8} & 50.00\% (1) & 0.6195 & 50.03\% & 50.00\% & 50.00\% & +7.43 & +37.29 \\
+Semantic, fixed thresholds & 100.00\% (2) & 0.7225 & 0.00\% & 50.00\% & 50.00\% & $-$0.04 & $-$0.04 \\
+Semantic, $\lambda = 0.5345$ \Fix{N3} & 100.00\% (2) & 0.7225 & 22.26\% & 50.00\% & 50.00\% & +3.29 & +16.57 \\
+Guard only & 0.00\% (0) & 0.6185 & 99.76\% & 50.00\% & 50.00\% & +14.85 & +74.31 \\
+Hybrid Balanced, $\lambda = 0.53$ & 100.00\% (2) & 0.7196 & 22.23\% & 50.00\% & 50.00\% & +3.28 & +16.55 \\
+Hybrid High-Savings, $\lambda = 0.58$ & 50.00\% (1) & 0.7196 & 66.87\% & 50.00\% & 50.00\% & +9.94 & +49.86 \\
+Full, with LLM judge \Fix{N10} & 100.00\% (2) & 0.7196 & 40.36\% & 50.00\% & 50.00\% & $-$0.37 (+5.67) & +23.73 (+29.76) \Fix{N18} \\
+\bottomrule
+\end{tabular}
+\end{table*}

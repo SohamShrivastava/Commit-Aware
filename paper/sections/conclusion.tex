@@ -1,0 +1,10 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+\SecNote{Restates only what results support. Revisit after N9, N10 and N16.}
+
+We addressed Challenge \#2 with a selector that pays for LLM reasoning mostly offline, and evaluated it against the three requirements. On safety, weighted conformal risk control gave a threshold whose target differs from fault recall, and the calibrated semantic layer alone fell well short of what $\alpha$ suggests \Fix{N16}. On evolution, a frozen threshold degrades, and online adjustment needs verdicts for skipped tests, which a deployment must obtain through scheduled full runs \Fix{N13}. On cost, indexing is cheap and predictable, while a live LLM judge may not pay for itself on inexpensive runners \Fix{N10}. On ShardingSphere, a telemetry guard and the semantic layer are complementary. The guard catches 221 of 239 failures, and the semantic layer recovers 17 of the 18 that have no failure history, at a price per failure that a team can weigh \Fix{N19}. A trained ranker also catches them where history exists, and the semantic layer's distinct contribution is that it needs none. Next steps are point-in-time indexing, full-run-based monitoring, and more subjects with real failure density.
+
+\section*{Data Availability}
+
+\Fix{N44: anonymized archive on Zenodo or figshare, not GitHub. Include pipeline code, summaries, embeddings or instructions to regenerate them, the cached LLM decisions, and per-build results. The CFP's open science page asks for this section after the Conclusion. No repository URL may appear here during review, and the current repository README and git history identify authors.}

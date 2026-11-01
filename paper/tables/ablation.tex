@@ -1,0 +1,19 @@
+\begin{table}[t]
+\centering
+\caption{Layer contributions on ShardingSphere (239 failures). ``Extra'' counts failures caught beyond the guard alone. The price divides the net savings given up relative to the guard by Extra, at \$0.10 and \$0.50 per VM-hour, with $t_{\text{test}} = 5$\,s. Prices are derived from Table~\ref{tab:benchmark}.}
+\label{tab:ablation}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+\textbf{Configuration} & \textbf{Caught} & \textbf{Reduction} & \textbf{Extra} & \textbf{\$/extra failure} \\
+\midrule
+Semantic only (guard off) & 142 & 29.56\% & --- & --- \\
+Guard only (semantic off) & 221 & 99.93\% & 0 & --- \\
+Hybrid High-Savings & 225 & 91.77\% & 4 & 1.01 / 5.02 \\
+Hybrid Balanced (both) & 238 & 29.54\% & 17 & 2.04 / 10.19 \\
+\midrule
+TCP-CI ranker, top 50\% & 238 & 50.03\% & 17 \Fix{N32} & 1.44 / 7.22 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,20 @@
+\section{Introduction}
+\label{sec:intro}
+
+\SecNote{Argues that LLM reasoning is useful for test selection only if its cost leaves the pull-request path, and that the honest measure of the semantic signal is what it adds to cheap telemetry. Carried by the challenge statement and the ablation in Section~\ref{sec:rq4}. Numbers here must be re-checked once N10 is resolved.}
+
+CI/CD pipelines execute the complete test suite on each pull request regardless of how narrow the change is, which increases feedback latency and inflates compute costs and ecological footprint~\cite{challenge}. Challenge \#2 of the ICSE 2027 Industry Challenge asks for commit-aware selection that addresses three requirements together. The risk of skipping a test must be assessed, with fallback mechanisms for production use. Accuracy must hold as the code base and its tests evolve, without frequent recalibration or retraining. The selection decision sits in the critical path of every pull request, so its latency and its monetary and ecological costs must be offset against what skipping tests saves.
+
+The third requirement rules out the obvious design. An LLM can read a diff and reason about which tests it affects, but asking it to do so per commit and per test places token spend and inference latency on every pull request, and a selector can then cost more than it saves. Our approach, \tool{} \Fix{D2: decide the tool name; FLAG is a placeholder from macros.tex}, keeps semantic reasoning and moves most of its cost offline. An LLM reads each test file once and writes a short description, which is embedded. The cost is amortized per test instead of paid per pull request. At commit time the only API work needed for most tests is one embedding of the diff, followed by a cosine similarity against the index. A live LLM sees only tests near the decision threshold.
+
+Two findings shape this paper. The first concerns safety. Weighted conformal risk control sets a threshold by targeting the expected per-build miss fraction, yet at $\alpha = 0.05$ the calibrated semantic layer alone reaches 59.41\% fault recall on ShardingSphere. Passing builds contribute no loss and dilute that risk, so controlling it does not translate into the recall a practitioner expects from the same number, and we report the gap instead of hiding it \Fix{N16}.
+
+The second concerns what semantic signal adds. A guard that forces recently failing tests to run catches 221 of 239 failures while running a tiny fraction of the suite, which sets a high bar for any more expensive signal. The 18 failures it misses have no failure history at all, and the semantic layer recovers 17 of them. A trained ranker over 150 features reaches the same recall on this project at higher reduction, so we do not claim that semantic selection beats historical learning where history exists. It does offer a selector that needs no failure history, which matters on projects like Log4j2 where that history is empty.
+
+This paper makes the following contributions:
+\begin{itemize}
+    \item A selection architecture that addresses the three requirements of the challenge, with the LLM limited to one offline pass and a narrow boundary band (Section~\ref{sec:approach}).
+    \item An evaluation on 597 chronologically held-out builds of two Apache projects, separating a frozen benchmark from an online drift simulation (Sections~\ref{sec:evaluation} and~\ref{sec:results}).
+    \item A cost account net of tokens, including the price per additional failure caught, stated at both billed and discounted API rates (Sections~\ref{sec:rq3} and~\ref{sec:rq4}).
+    \item A report of where calibration falls short for this task, and of what the challenge's fallback mechanisms would need to add (Sections~\ref{sec:rq1} and~\ref{sec:discussion}).
+\end{itemize}

@@ -1,0 +1,60 @@
+\section{Results}
+\label{sec:results}
+
+\SecNote{Builds toward RQ4. RQ1 shows the calibrated semantic layer falls well short of the recall its alpha suggests, RQ2 shows thresholds drift and that monitoring has a price, RQ3 gives the net cost, and RQ4 shows what the two layers do together. Carried by the tables below and the figures requested in the markers. paper\_figures.py can regenerate figures only once result JSONs are available.}
+
+\input{tables/benchmark}
+
+Table~\ref{tab:benchmark} reports all methods.
+
+\subsection{RQ1, Safety}
+\label{sec:rq1}
+
+On ShardingSphere, the calibration slice has total weight $W = 301.32$, so the correction moves the empirical ceiling from 0.0500 to 0.046847. This yields $\hat\lambda = 0.5272$, with weighted empirical risk 0.044696 and corrected risk 0.047856 \Fix{N1}. A frozen $\hat\lambda$ on the evaluation slice catches 142 of 239 failures (59.41\%) and skips 29.56\% of executions.
+
+\Fix{N17: need the mean per-build miss fraction on the evaluation slice at frozen $\hat\lambda$, the quantity the calibration targets. Report it next to fault recall. Only 34 of 420 builds fail, so this value can sit below 0.05 while recall is far from 95\%.}
+
+The target $\alpha = 0.05$ might suggest roughly 95\% recall, and the measured value is far lower. The two numbers measure different things. Passing builds contribute zero loss, and 91.0\% of ShardingSphere's calibration builds pass (334 of 367), which dilutes the calibrated risk by about a factor of ten. A threshold that misses 40\% of failures on failing builds can therefore still meet the target. Calibrating on the 33 failing builds alone gives $\lambda = 0.4656$, which catches 227 of 239 failures (94.98\%) on the evaluation slice but skips only 4.71\% of executions \Fix{N16: from progress.md; no code for this run is in the repository, commit it before relying on these numbers}. Holding the semantic layer alone to the recall target leaves little to save, which motivates handling chronically failing tests in a separate layer.
+
+\textbf{Log4j2.} The calibration slice has no failures, so calibration provides no threshold and the reported $\lambda = 0.5345$ is hard-coded \Fix{N3}. Its results are not evidence about calibration.
+
+\Fix{Figure needed: risk curve $\hat{R}_w(\lambda)$ against $\lambda$ with $\alpha$, plus pooled recall on the same axis (paper\_figures.py Figure 1 is a starting point).}
+
+\subsection{RQ2, Evolution}
+\label{sec:rq2}
+
+We evaluate two regimes and keep them apart. In the frozen benchmark, $\hat\lambda$ is fixed before the evaluation slice, and all results in Table~\ref{tab:benchmark} are from this regime. Its recall of 59.41\% on ShardingSphere is out-of-sample.
+
+The online simulation is a separate experiment. The threshold adapts to the same builds it is measured on, using verdicts that include skipped tests, so its figures are not out-of-sample and do not compare directly with Table~\ref{tab:benchmark}. Across the 420 evaluation builds the monitor triggered four adjustments and the mean rolling per-build miss fraction was 0.48\%. \Fix{N9: stale. progress.md gives $\hat\lambda$ from 0.5272 to 0.3345, which steps of 0.05 cannot produce; the earlier report has 0.5345 to 0.3345. Re-run at current $\hat\lambda$. N12: 0.48\% is diluted by passing builds and is not fault recall; report recall instead. N11: need test reduction under the monitor. Fixed thresholds near this value skipped nothing (Table~\ref{tab:benchmark}), so recovery may amount to running everything.}
+
+\Fix{Figure needed: timeline of rolling miss fraction, adjustments and reduction per window (paper\_figures.py Figure 2, extended with reduction).}
+
+\Fix{Finding to write once re-run: what the monitor detects, how quickly, and what it costs. Also, the evaluation needs a variant where verdicts are available only from scheduled full runs (N13).}
+
+\subsection{RQ3, Cost}
+\label{sec:rq3}
+
+\input{tables/cost}
+
+Indexing cost \$5.90 for ShardingSphere and \$3.03 for Log4j2 (Table~\ref{tab:indexing}). Diff embedding across the evaluation slices cost an estimated \$0.08 and \$0.04 \Fix{N20: assumes 2,000 tokens per diff; measure}.
+
+The LLM judge made 2,696 calls and consumed 13.03 million prompt tokens, with diffs averaging about 4,800 tokens per call. At the live rate of \$1.50 per million prompt tokens this is \$13.20 on ShardingSphere and \$6.35 on Log4j2. At a discounted rate of \$0.075 per million it is \$0.66 and \$0.32. We lead with the live rate because it is what the run reports as billed \Fix{N20: confirm against billing; output tokens appear to be excluded; verify both rates against the provider's price list}. At the live rate and \$0.10 per VM-hour, the Full configuration nets +\$7.69 on ShardingSphere and $-$\$0.37 on Log4j2 before indexing \Fix{N18: +\$7.61 when the embedding cost is subtracted}. Comparing against Hybrid Balanced at the same rates, the judge saves about \$6.44 of compute on ShardingSphere, costs \$13.20, and misses one failure more (237 versus 238). At \$0.50 per VM-hour, the compute saved rises to about \$32.21 and exceeds the judge's cost \Fix{N10: rows from different thresholds; recompute after re-run}.
+
+Table~\ref{tab:impact} gives break-even and longer-term figures. Under the live rate, the break-even for the Full configuration on ShardingSphere moves from 122 to about 325 builds, and on Log4j2 at \$0.10 per VM-hour it is never reached \Fix{N18, N10}.
+
+\Fix{N21: critical for this requirement. Need wall-clock decision time per build, with embedding and LLM calls, at median and 95th percentile (elapsed\_sec is already recorded by llm\_batch\_selector.py), set against the feedback time saved. N19: replace 5\,s with measured durations before any of this section is final. N22: need inference energy.}
+
+\subsection{RQ4, What each layer contributes}
+\label{sec:rq4}
+
+\input{tables/ablation}
+
+Table~\ref{tab:ablation} isolates the layers on ShardingSphere. With the guard off, the calibrated semantic layer catches 142 of 239 failures. With the semantic layer off, the guard catches 221 while running about 248 of 354,301 executions. Together they catch 238, or 99.58\%. Because the combination selects everything the guard selects, the 17 additional failures are attributable to the semantic layer.
+
+The guard misses 18 failures. For each of them the last verdict, recent failure rate and total failure rate are all zero, so a rule on those features cannot select these tests, whatever its threshold. The semantic layer recovers 17 of them, leaving one failure missed by the combination \Fix{N6: README says all 18 are caught; the counts allow only 17. N40: need the list of 18, their builds, and how many distinct commits they represent}.
+
+Those 17 failures have a price. Moving from the guard alone to Hybrid Balanced gives up 70 points of reduction, which at our assumptions is \$34.64 at \$0.10 per VM-hour and \$173.20 at \$0.50, or \$2.04 to \$10.19 per additional failure caught \Fix{N19}. A team can compare this directly to what a late-detected regression costs them. The High-Savings operating point buys only 4 of those failures but keeps 91.77\% reduction, at \$1.01 to \$5.02 per failure.
+
+The TCP-CI ranker changes the interpretation and belongs in the same table. With features that include change and coverage signals, it reaches the same 238 failures at 50.03\% reduction, so on ShardingSphere it beats Hybrid Balanced on reduction and on net savings. A threshold on failure history cannot reach zero-history failures, while this ranker at this budget does catch them, and we cannot yet say how much of that comes from its features and how much from running half the suite \Fix{N7: progress.md line 242 says the ranker missed the case-study tests, which 238/239 rules out for at least three of four. N32: list which of the 18 the ranker catches and at which budget}. At a budget near 10\%, pooled recall is 92.89\% for the ranker against 94.14\% for High-Savings, a difference of about three failures \Fix{N32: progress.md reports both 92.89\% and 94.75\% for this budget; different aggregation? Need a recall-versus-reduction sweep of Hybrid and ranker on one figure, with confidence intervals, before claiming any ordering}. The comparison also needs to count the cost of collecting the ranker's features, which our model sets to zero \Fix{N32}.
+
+The semantic layer's clearest advantage is that it needs no failure history. On Log4j2 no failures precede the evaluation slice, so no ranker can be trained on it, and the guard catches neither of the two failures, whereas the semantic layer catches both at $\lambda = 0.53$ with 22.23\% reduction \Fix{N3, N8: two failures only; a case study, not a generalization claim}.

@@ -1,0 +1,56 @@
+% ICSE 2027 Industry Challenge, Solution Paper for Challenge #2.
+% Format per CFP: IEEE conference template, 10pt, no compsoc options.
+% Limit: 10 pages including figures, tables and appendices, plus up to
+% 2 pages containing only references. Double-anonymous.
+\documentclass[10pt,conference]{IEEEtran}
+
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{cite}
+\input{macros}
+
+% Draft switch. \draftnotesfalse hides \Fix, \Den and \SecNote, which is how
+% to check the page count. Nothing using these may remain at submission:
+% \Den prints a name and would break anonymity.
+\newif\ifdraftnotes
+\draftnotestrue
+\ifdraftnotes\else
+  \renewcommand{\Fix}[1]{}
+  \renewcommand{\Den}[1]{}
+\fi
+% States what a section argues and which evidence carries it.
+\newcommand{\SecNote}[1]{\ifdraftnotes{\par\noindent\footnotesize\itshape
+  \textcolor{blue!55!black}{[Section note] #1}\par\smallskip}\fi}
+
+\begin{document}
+
+\title{Commit-Aware Test Selection with Amortized\\
+Semantic Indexing and Calibrated Risk}
+
+\author{\IEEEauthorblockN{Anonymous Author(s)}
+\IEEEauthorblockA{Submission to the ICSE 2027 Industry Challenge Track, Challenge \#2}}
+
+\maketitle
+
+\begin{abstract}
+\input{sections/abstract}
+\end{abstract}
+
+\begin{IEEEkeywords}
+regression test selection, continuous integration, conformal risk control, large language models, cost-effectiveness
+\end{IEEEkeywords}
+
+\input{sections/intro}
+\input{sections/background}
+\input{sections/approach}
+\input{sections/evaluation}
+\input{sections/results}
+\input{sections/discussion}
+\input{sections/threats}
+\input{sections/related}
+\input{sections/conclusion}
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

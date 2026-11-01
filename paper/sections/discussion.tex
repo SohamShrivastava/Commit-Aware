@@ -1,0 +1,27 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\SecNote{Argues what a practitioner should do with these results. Walks through zero-history commits concretely, gives a deployment recommendation by situation, and is direct about what is not ready. Carried by RQ4 and by public patches. Only one commit is available so far. Structure follows the ``challenges and lessons'' style of industrial reports such as the Ericsson SEIP paper.}
+
+\subsection{Zero-history failures, commit by commit}
+\label{sec:cases}
+
+\textbf{Commit \texttt{c47772c3}.} The commit of Section~\ref{sec:motivating} adds one call that shuts down an executor held in a static field, inside a static method of \texttt{SchemaBuilder}. The change is small, and the failing tests sit in another module with no recorded failures. The selected tests scored at least 0.61 \Fix{N28}. We have not established why the embedding connects them. The summaries of those tests may mention schema metadata, or the score may reflect a general similarity among tests. \Fix{N28: students read the four summaries and report whether they mention the dependency, and the rank of those tests in the build. At High-Savings $\lambda = 0.62$, does this commit's rescue survive? Also say whether these tests fail for the reason the patch suggests, using the build log.}
+
+\textbf{Second commit.} \Fix{N29: students surface a second zero-history commit from the 18. Prefer a different module and a different kind of change.}
+
+\textbf{Third commit.} \Fix{N29: candidate from the two Log4j2 failures, which also have no history (the guard catches neither). Also show the one failure the combined selector still misses, because reviewers will trust the analysis more if it includes a miss.}
+
+\subsection{What a team should deploy}
+
+\Den{Draft recommendation, derived from Tables~\ref{tab:benchmark} and~\ref{tab:ablation}. Please check this is the position you want the paper to take; it is less flattering to the full system than the original framing, and I think more credible to the challenge's reviewers.}
+
+A team with no selection today should start with a guard, or the plain practice of rerunning what failed recently, and should measure how much of its failure stream that covers. On ShardingSphere this rule reached 92.47\% of failures almost for free. The semantic layer is the next step when the remaining failures matter enough to pay for, and Table~\ref{tab:ablation} gives a way to decide. Where a project has failure history and can collect the features, a ranker is a strong option and should be compared on the team's own data. Where history is sparse, as in a young project or a newly split module, a ranker has nothing to train on, whereas the semantic index needs only the test sources.
+
+\Fix{N10: conclude on the judge after re-running at current $\hat\lambda$. As reported, at the live rate and a \$0.10 per VM-hour runner, the judge costs more than the compute it saves and misses one more failure. Possible conclusion: the judge pays off only with discounted batch pricing or expensive runners, or it should be optional.}
+
+\subsection{What is not ready for production}
+
+The challenge asks for clear guidance on fallback mechanisms~\cite{challenge}. Our evaluation assumes verdicts for every test in every build, including tests that would be skipped. A deployed monitor would see verdicts only for tests that ran, which removes most of the signal for exactly the failures it should detect. Scheduled full-suite runs would restore some of it, at a cost our model does not yet include and with a detection delay that depends on their frequency \Fix{N13, N33}. The thresholds we use are also global. A team may reasonably want a stricter rule for release branches and a looser one for pre-merge checks, and we have not evaluated per-branch policies. Human review of low-confidence suggestions, the third fallback the challenge names, is untested.
+
+\Fix{Lessons from building this: LLM results depend on model version (N37); per-prompt truncation limits what the judge sees (N36); a cached run is reproducible, but a re-summarization is not.}
