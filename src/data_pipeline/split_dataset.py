@@ -160,7 +160,7 @@ def slice_summary(slice_builds, label):
     }
 
 
-def run_split(tune_frac=DEFAULT_TUNE_FRAC, cal_frac=DEFAULT_CAL_FRAC):
+def run_split(tune_frac=DEFAULT_TUNE_FRAC, cal_frac=DEFAULT_CAL_FRAC, project=None):
     """Run the 3-way chronological split for all configured projects."""
     eval_frac = round(1.0 - tune_frac - cal_frac, 4)
     assert eval_frac > 0, f"Fractions must sum to < 1.0 (eval gets remainder). Got eval_frac={eval_frac}"
@@ -177,7 +177,9 @@ def run_split(tune_frac=DEFAULT_TUNE_FRAC, cal_frac=DEFAULT_CAL_FRAC):
         "projects": {},
     }
 
-    for project_key, proj_cfg in PROJECTS.items():
+    target_projects = {project: PROJECTS[project]} if project else PROJECTS
+
+    for project_key, proj_cfg in target_projects.items():
         project_folder = proj_cfg["folder"]
         dataset_path = project_folder / "complete_dataset.jsonl"
 
@@ -219,8 +221,22 @@ def run_split(tune_frac=DEFAULT_TUNE_FRAC, cal_frac=DEFAULT_CAL_FRAC):
 
     # Write global splits.json
     splits_path = DATASETS_DIR / "splits.json"
+    existing_splits = {}
+    if splits_path.exists():
+        try:
+            with open(splits_path, encoding="utf-8") as f:
+                existing_splits = json.load(f)
+        except Exception:
+            existing_splits = {}
+    if "projects" in existing_splits:
+        existing_splits["projects"].update(global_summary["projects"])
+        existing_splits["split_fractions"] = global_summary["split_fractions"]
+        to_write = existing_splits
+    else:
+        to_write = global_summary
+
     with open(splits_path, "w", encoding="utf-8") as f:
-        json.dump(global_summary, f, indent=2, default=str, ensure_ascii=False)
+        json.dump(to_write, f, indent=2, default=str, ensure_ascii=False)
     print(f"\n{'=' * 70}")
     print(f"Wrote split summary to {splits_path}")
 
@@ -230,10 +246,12 @@ def run_split(tune_frac=DEFAULT_TUNE_FRAC, cal_frac=DEFAULT_CAL_FRAC):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--project", type=str, default=None,
+                        help="Specific project to split (default: all)")
     parser.add_argument("--tune-frac", type=float, default=DEFAULT_TUNE_FRAC,
                         help=f"Fraction of builds for parameter tuning (default: {DEFAULT_TUNE_FRAC})")
     parser.add_argument("--cal-frac", type=float, default=DEFAULT_CAL_FRAC,
                         help=f"Fraction of builds for calibration (default: {DEFAULT_CAL_FRAC})")
     args = parser.parse_args()
 
-    run_split(tune_frac=args.tune_frac, cal_frac=args.cal_frac)
+    run_split(tune_frac=args.tune_frac, cal_frac=args.cal_frac, project=args.project)

@@ -22,6 +22,16 @@ import argparse
 from pathlib import Path
 from collections import defaultdict
 
+# Support large commit fields in builds.csv (e.g. apache@sling)
+_max_limit = sys.maxsize
+while True:
+    try:
+        csv.field_size_limit(_max_limit)
+        break
+    except OverflowError:
+        _max_limit = int(_max_limit / 10)
+
+
 
 def run_git(repo_path, args):
     """Run a git command, safely decoding output regardless of OS/encoding."""

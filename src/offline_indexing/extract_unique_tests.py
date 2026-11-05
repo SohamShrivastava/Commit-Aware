@@ -19,6 +19,15 @@ from collections import defaultdict
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from src.config import PROJECTS
 
+_max_limit = sys.maxsize
+while True:
+    try:
+        csv.field_size_limit(_max_limit)
+        break
+    except OverflowError:
+        _max_limit = int(_max_limit / 10)
+
+
 
 def run_git(repo_path, args):
     """Run a git command, safely decoding output."""

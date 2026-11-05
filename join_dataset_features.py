@@ -10,9 +10,19 @@ import argparse
 import csv
 import json
 import sqlite3
+import sys
 import tempfile
 from contextlib import closing
 from pathlib import Path
+
+_max_limit = sys.maxsize
+while True:
+    try:
+        csv.field_size_limit(_max_limit)
+        break
+    except OverflowError:
+        _max_limit = int(_max_limit / 10)
+
 
 
 def create_feature_index(dataset_path, database_path):

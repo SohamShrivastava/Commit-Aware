@@ -27,6 +27,14 @@ PROJECTS = {
         "folder": DATASETS_DIR / "apache@shardingsphere",
         "repo_subfolder": "shardingsphere",
     },
+    "sling": {
+        "folder": DATASETS_DIR / "apache@sling",
+        "repo_subfolder": "sling",
+    },
+    "spf4j": {
+        "folder": DATASETS_DIR / "zolyfarkas@spf4j",
+        "repo_subfolder": "spf4j",
+    },
 }
 
 # ── Gemini API ──
