@@ -397,7 +397,7 @@ def batch_evaluate(project_key, slice_path, tau_high, tau_low, limit=None):
             if not name:
                 continue
             build_tests += 1
-            is_failure = outcome.get("verdict") == "1"
+            is_failure = str(outcome.get("verdict")) in ("1", "2", "3")
             if is_failure:
                 build_failures += 1
                 total_failures += 1

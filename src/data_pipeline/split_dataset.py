@@ -87,7 +87,7 @@ def load_builds_with_timestamps(dataset_path):
                 "n_tests": len(rec.get("test_outcomes", [])),
                 "n_failures": sum(
                     1 for t in rec.get("test_outcomes", [])
-                    if t.get("verdict") == "1"
+                    if str(t.get("verdict")) in ("1", "2", "3")
                 ),
             })
     return builds

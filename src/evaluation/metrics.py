@@ -186,7 +186,7 @@ def evaluate_method(method_name, eval_records, score_fn, threshold=None,
 
         test_names = [t["testName"] for t in outcomes if t.get("testName")]
         failure_set = {t["testName"] for t in outcomes
-                       if t.get("testName") and t.get("verdict") == "1"}
+                       if t.get("testName") and str(t.get("verdict")) in ("1", "2", "3")}
 
         # Get scores for this build's tests
         scores = score_fn(rec)
@@ -406,7 +406,7 @@ def run_evaluation(project_key, vm_cost=DEFAULT_VM_COST_PER_HOUR, eval_slice=Non
                     f = o.get("features")
                     is_fragile = False
                     if f:
-                        lv = (f.get("REC_LastVerdict") == "1")
+                        lv = (str(f.get("REC_LastVerdict")) in ("1", "2", "3"))
                         rf = (float(f.get("REC_RecentFailRate") or 0) > 0.05)
                         tf = (float(f.get("REC_TotalFailRate") or 0) > 0.05)
                         is_fragile = (lv or rf or tf)
@@ -435,7 +435,7 @@ def run_evaluation(project_key, vm_cost=DEFAULT_VM_COST_PER_HOUR, eval_slice=Non
                     f = o.get("features")
                     is_fragile = False
                     if f:
-                        lv = (f.get("REC_LastVerdict") == "1")
+                        lv = (str(f.get("REC_LastVerdict")) in ("1", "2", "3"))
                         rf = (float(f.get("REC_RecentFailRate") or 0) > 0.05)
                         tf = (float(f.get("REC_TotalFailRate") or 0) > 0.05)
                         is_fragile = (lv or rf or tf)

@@ -246,7 +246,7 @@ class TCPCIHistoricalBaseline:
                     except (ValueError, TypeError):
                         row.append(0.0)
                 X_rows.append(row)
-                y_rows.append(1 if outcome.get("verdict") == "1" else 0)
+                y_rows.append(1 if str(outcome.get("verdict")) in ("1", "2", "3") else 0)
 
         if len(X_rows) < 10:
             print(f"  WARNING: Only {len(X_rows)} training samples -- Baseline C may be unreliable.")
@@ -309,15 +309,16 @@ class TCPCIHistoricalBaseline:
             }
 
         scores = {}
-        for i, test in enumerate(tests):
-            if test_features[i] is not None:
-                prob = self.model.predict_proba([test_features[i]])[0]
-                # Index 1 = probability of failure
+        valid_indices = [i for i, f in enumerate(test_features) if f is not None]
+        if valid_indices:
+            valid_X = [test_features[i] for i in valid_indices]
+            all_probs = self.model.predict_proba(valid_X)
+            for idx, prob in zip(valid_indices, all_probs):
                 p_fail = prob[1] if len(prob) > 1 else prob[0]
-                scores[test] = float(p_fail)
-            else:
-                # No features → conservative: assume relevant
-                scores[test] = 1.0
+                scores[tests[idx]] = float(p_fail)
+        for t in tests:
+            if t not in scores:
+                scores[t] = 1.0
 
         # Select based on threshold or fraction
         if self.threshold is not None:
@@ -365,7 +366,7 @@ def evaluate_baseline(baseline, build_records, label=""):
             if not name:
                 continue
             total_tests += 1
-            is_failure = outcome.get("verdict") == "1"
+            is_failure = str(outcome.get("verdict")) in ("1", "2", "3")
 
             if name in selected_set:
                 total_selected += 1

@@ -288,7 +288,7 @@ def prepare_calibration_data(selector, calibration_records):
             tests.append({
                 "test_name": name,
                 "similarity": sim,
-                "is_failure": outcome.get("verdict") == "1",
+                "is_failure": str(outcome.get("verdict")) in ("1", "2", "3"),
             })
 
         ts = parse_timestamp(rec.get("started_at"))

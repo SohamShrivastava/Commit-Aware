@@ -279,7 +279,7 @@ def run_drift_monitor(project_key, lambda_hat=None, alpha=0.05, epsilon=DEFAULT_
             test_results.append({
                 "test_name": name,
                 "similarity": sim,
-                "is_failure": outcome.get("verdict") == "1",
+                "is_failure": str(outcome.get("verdict")) in ("1", "2", "3"),
             })
 
         result = monitor.observe(build_id, test_results)

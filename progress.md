@@ -188,19 +188,19 @@ Because cloud API pricing distinguishes between cached batch tiers and live inte
 *\*Note for Full Model: Reflects Regime 1 (Cached / Batch API rate). Under Regime 2 (Live unoptimized Pay-As-You-Go single-call rate, -$13.20 API spend), Net Savings is **+$7.69** at $0.10/hr and **+$91.25** at $0.50/hr.*
 
 ### 4.4 Evaluation Table: Apache Log4j2
-*(177 builds, 107,451 test executions, 2 failing builds, 2 true failures)*
+*(177 builds, 107,451 test executions, 79 failing builds, 80 true failures)*
 
 | Method | Fault Recall | APFD | Test Reduction | Recall @ 10% | Recall @ 20% | Net Savings ($0.10/hr VM) | Net Savings ($0.50/hr VM) |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | **Run All (Baseline A)** | 100.00% | 0.5000 | 0.00% | 10.00% | 20.00% | -$0.04 | -$0.04 |
-| **Path Heuristic (Baseline B)** | 50.00% | 0.5585 | 76.71% | 50.00% | 50.00% | +$11.41 | +$57.20 |
-| **TCP-CI ML (Baseline C, top-50%)** | 50.00% | 0.6195 | 50.03% | 50.00% | 50.00% | +$7.43 | +$37.29 |
-| **Semantic Selector (Fixed)** | **100.00%** | **0.7225** | 0.00% | **50.00%** | **50.00%** | -$0.04 | -$0.04 |
-| **Conformal Selector ($\hat{\lambda}=0.5345$)** | **100.00%** | **0.7225** | **22.26%** | **50.00%** | **50.00%** | **+$3.29** | **+$16.57** |
-| **Fragile Guard Only (Ablation)** | 0.00% | 0.6185 | **99.76%** | 50.00% | 50.00% | **+$14.85** | **+$74.31** |
-| **Hybrid (Balanced, $\lambda=0.53$)** | **100.00%** | **0.7196** | **22.23%** | **50.00%** | **50.00%** | **+$3.28** | **+$16.55** |
-| **Hybrid (High-Savings, $\lambda=0.58$)** | 50.00% | 0.7196 | **66.87%** | **50.00%** | **50.00%** | **+$9.94** | **+$49.86** |
-| **Full Model (Hybrid + Live LLM Judge)** | **100.00%** | **0.7196** | **40.36%** | **50.00%** | **50.00%** | **+$5.67*** | **+$29.76*** |
+| **Path Heuristic (Baseline B)** | 12.50% | 0.0607 | 76.71% | 2.53% | 3.80% | +$11.41 | +$57.20 |
+| **TCP-CI ML (Baseline C, top-50%)** | 96.25% | 0.9567 | 50.03% | 93.04% | 93.67% | +$7.43 | +$37.29 |
+| **Semantic Selector (Fixed)** | **100.00%** | 0.5979 | 0.00% | 10.13% | 26.58% | -$0.04 | -$0.04 |
+| **Conformal Selector ($\hat{\lambda}=0.50$)** | **96.25%** | 0.5979 | 3.70% | 10.13% | 26.58% | +$0.52 | +$2.62 |
+| **Fragile Guard Only (Ablation)** | 88.75% | 0.9155 | **99.76%** | 91.14% | 91.14% | **+$14.85** | **+$74.31** |
+| **Hybrid (Balanced, $\lambda=0.50$)** | **100.00%** | **0.9646** | 3.70% | **93.67%** | **93.67%** | +$0.52 | +$2.62 |
+| **Hybrid (High-Savings, $\lambda=0.58$)** | **92.50%** | **0.9646** | **66.87%** | **93.67%** | **93.67%** | **+$9.94** | **+$49.86** |
+| **Full Model (Hybrid + Live LLM Judge)** | **98.75%** | **0.9646** | **40.36%** | **93.67%** | **93.67%** | **+$5.67*** | **+$29.76*** |
 
 *\*Note for Full Model: Reflects Regime 1 (Cached / Batch API rate). Under Regime 2 (Live unoptimized Pay-As-You-Go single-call rate, -$6.35 API spend), Net Savings is **-$0.37** at $0.10/hr and **+$23.73** at $0.50/hr.*
 

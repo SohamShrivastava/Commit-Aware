@@ -311,7 +311,7 @@ class LLMBatchSelector:
             name = o.get("testName")
             f = o.get("features")
             if name and f:
-                lv = (f.get("REC_LastVerdict") == "1")
+                lv = (str(f.get("REC_LastVerdict")) in ("1", "2", "3"))
                 rf = (float(f.get("REC_RecentFailRate") or 0) > 0.05)
                 tf = (float(f.get("REC_TotalFailRate") or 0) > self.fragile_threshold)
                 if lv or rf or tf:
@@ -485,7 +485,7 @@ def run_llm_batch_selection(project_key, delta=DEFAULT_DELTA,
         # Track fault recall
         outcomes = rec.get("test_outcomes", [])
         failure_set = {t["testName"] for t in outcomes
-                       if t.get("testName") and t.get("verdict") == "1"}
+                       if t.get("testName") and str(t.get("verdict")) in ("1", "2", "3")}
         selected_set = set(result["selected_tests"])
 
         total_failures += len(failure_set)
@@ -517,7 +517,7 @@ def run_llm_batch_selection(project_key, delta=DEFAULT_DELTA,
     for rec, p in zip(records, per_build):
         outcomes = rec.get("test_outcomes", [])
         failure_set = {t["testName"] for t in outcomes
-                       if t.get("testName") and t.get("verdict") == "1"}
+                       if t.get("testName") and str(t.get("verdict")) in ("1", "2", "3")}
         if failure_set:
             test_names = [t["testName"] for t in outcomes if t.get("testName")]
             scores = p.get("scores", {})

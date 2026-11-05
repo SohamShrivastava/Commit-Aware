@@ -18,6 +18,8 @@ env/
 
 # ===== Dataset (too large for GitHub) =====
 TCP-CI-dataset-v2/
+Build_Cnt/TCP-CI-dataset-v2/
+
 
 # ===== Jupyter Notebook Checkpoints =====
 .ipynb_checkpoints/
