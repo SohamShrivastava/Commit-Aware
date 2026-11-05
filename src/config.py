@@ -43,7 +43,7 @@ GEMINI_MODEL = "gemini-3.6-flash"
 
 
 # Paid tier — much higher limits than free
-GEMINI_RPM = 60            # paid tier allows 1000+ RPM, using 60 to be safe
+GEMINI_RPM = 120           # paid tier allows 1000+ RPM; 120 RPM is safe and 2x faster (0.5s delay)
 GEMINI_BATCH_SIZE = 1      # 1 test per request = reliable plain-text responses
 GEMINI_MAX_OUTPUT_TOKENS = 512
 
