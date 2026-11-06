@@ -103,7 +103,7 @@ Evaluation is reported on Slice 3 (the out-of-sample evaluation slice). In accor
 
 ### 4.1 Overview of Evaluated Methods
 
-To understand the progression of our framework and fairly evaluate its performance against industry baselines, we compare eight distinct selection strategies across both repositories:
+To understand the progression of our framework and fairly evaluate its performance against industry baselines, we compare eight distinct selection strategies across all four benchmark repositories:
 
 1. **Run All (Baseline A):**  
    The standard, un-optimized CI practice. Executes 100% of the regression test suite for every commit. This guarantees 100% fault recall but incurs zero test reduction, maximum compute expense, and the longest feedback delays.
@@ -149,7 +149,7 @@ $$\text{Net Cloud Savings (USD)} = \text{VM Compute Hours Saved} \times C_{\text
   *(Or **$0.0006944 saved per test** on standard $0.50/hr enterprise runners).*
 
 #### 2. Upstream API Operating Costs:
-- **Diff Embedding API Cost ($C_{\text{embedding}}$):** Each commit diff is converted into a 3,072-dimensional vector embedding once per build at **$0.0001 per 1,000 tokens** ($0.10 / 1M tokens), totaling **$0.08** across all 420 ShardingSphere builds and **$0.04** across all 177 Log4j2 builds.
+- **Diff Embedding API Cost ($C_{\text{embedding}}$):** Each commit diff is converted into a 3,072-dimensional vector embedding once per build at **$0.0001 per 1,000 tokens** ($0.10 / 1M tokens), totaling **$0.08** across 420 ShardingSphere builds, **$0.04** across 177 Log4j2 builds, **$0.11** across 562 Sling builds, and **$0.05** across 236 spf4j builds.
 - **LLM Inference API Cost ($C_{\text{LLM}}$):** Applicable strictly to the Full Model (Method 8), where tests in the uncertain boundary band $[\hat{\lambda}-\delta, \hat{\lambda}+\delta]$ are sent to Gemini Flash alongside their functional summaries and diff.
 
 #### 3. Dual-Regime Accounting for LLM Inference:
@@ -206,31 +206,82 @@ Because cloud API pricing distinguishes between cached batch tiers and live inte
 
 ---
 
-### 4.5 Detailed Analytical Findings
+### 4.5 Evaluation Table: Apache Sling
+*(562 builds, 121,145 test executions, 111 failing builds, 113 true failures)*
 
-#### 1. Prioritization Quality (APFD and Early Detection)
-Across both repositories, our framework achieves higher APFD scores than the industry standard TCP-CI GBDT ranker:
-- On ShardingSphere: **APFD 0.9795 vs 0.9771**; Recall @ 10% Budget **96.55% vs 94.75%**.
-- On Log4j2: **APFD 0.7196 vs 0.6195**; Recall @ Budget **50.00% vs 50.00%**.
-This confirms that ordering tests by semantic relevance positions failing tests earlier in the execution cycle.
+| Method | Fault Recall | APFD | Test Reduction | Recall @ 10% | Recall @ 20% | Net Savings ($0.10/hr VM) | Net Savings ($0.50/hr VM) |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Run All (Baseline A)** | 100.00% | 0.5000 | 0.00% | 10.00% | 20.00% | -$0.11 | -$0.11 |
+| **Path Heuristic (Baseline B)** | 33.63% | 0.3187 | 58.74% | 0.90% | 0.90% | +$9.77 | +$49.30 |
+| **TCP-CI ML (Baseline C, top-50%)** | 66.37% | 0.6490 | 50.13% | 64.41% | 65.32% | +$8.32 | +$42.06 |
+| **Semantic Selector (Fixed)** | 100.00% | 0.5493 | 0.00% | 9.91% | 23.42% | -$0.11 | -$0.11 |
+| **Conformal Selector ($\hat{\lambda}=0.5095$)** | 91.15% | 0.5493 | 10.76% | 9.91% | 23.42% | +$1.70 | +$8.94 |
+| **Fragile Guard Only (Ablation)** | 68.14% | 0.8660 | 99.80% | 68.92% | 68.92% | +$16.68 | +$83.85 |
+| **Hybrid (Balanced, $\lambda=0.51$)** | **99.11%** | **0.8551** | 10.74% | **71.62%** | **75.23%** | +$1.69 | +$8.92 |
+| **Hybrid (High-Savings, $\lambda=0.58$)** | **74.34%** | **0.8551** | **74.77%** | **71.62%** | **75.23%** | **+$12.47** | **+$62.79** |
+| **Full Model (Hybrid + Live LLM Judge)** | **99.11%** | **0.8551** | 3.79% | **71.62%** | **75.23%** | **+$0.52*** | **+$3.07*** |
 
-#### 2. The Danger of Path Heuristics
-Lexical path matching (Baseline B) fails catastrophically on large repositories, detecting only **6.69% of failures** in ShardingSphere (missing 223 out of 239 failures). Path heuristics assume changes only affect colocated tests, entirely missing cross-module, interface, and behavioral regressions.
+*\*Note for Apache Sling: Offline indexing cost: ₹140.82 ($1.69) for 1,290 Gemini 3.6 Flash test summaries + ₹2.49 ($0.03) for Gemini Embedding 2 vectors = ₹143.31 ($1.72 total). On Slice 3, commit diff embedding cost $0.11 across all 562 builds. Boundary LLM decisions are cached with zero marginal re-run cost.*
 
-#### 3. Generalization vs. Historical Feature Memorization
-TCP-CI ML requires 150 historical features. In ShardingSphere, where flaky agent tests failed repeatedly on master, the GBDT achieved high recall by memorizing historical failure frequency. However, on Log4j2—which had a clean tuning history—TCP-CI ML dropped to **50.00% recall** (missing 1 of 2 failures). In contrast, our semantic-conformal architecture reads the test code and diff zero-shot, detecting **100.00% of failures** on Log4j2.
+---
+
+### 4.6 Evaluation Table: zolyfarkas@spf4j
+*(236 builds, 28,564 test executions, 128 failing builds, 144 true failures)*
+
+| Method | Fault Recall | APFD | Test Reduction | Recall @ 10% | Recall @ 20% | Net Savings ($0.10/hr VM) | Net Savings ($0.50/hr VM) |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Run All (Baseline A)** | 100.00% | 0.5000 | 0.00% | 10.00% | 20.00% | -$0.05 | -$0.05 |
+| **Path Heuristic (Baseline B)** | 52.78% | 0.4921 | 50.96% | 25.00% | 25.39% | +$1.97 | +$10.06 |
+| **TCP-CI ML (Baseline C, top-50%)** | 94.44% | 0.8357 | 50.21% | 21.48% | 69.66% | +$1.94 | +$9.91 |
+| **Semantic Selector (Fixed)** | 100.00% | 0.6529 | 0.00% | 21.35% | 30.21% | -$0.05 | -$0.05 |
+| **Conformal Selector ($\hat{\lambda}=0.5151$)** | 89.58% | 0.6529 | 24.57% | 21.35% | 30.21% | +$0.93 | +$4.83 |
+| **Fragile Guard Only (Ablation)** | 79.86% | 0.9160 | 98.56% | 89.32% | 89.97% | +$3.86 | +$19.50 |
+| **Hybrid (Balanced, $\lambda=0.52$)** | **97.92%** | **0.9326** | 24.49% | **89.32%** | **93.49%** | +$0.92 | +$4.81 |
+| **Hybrid (High-Savings, $\lambda=0.58$)** | **93.75%** | **0.9326** | **80.16%** | **89.32%** | **93.49%** | **+$3.13** | **+$15.85** |
+| **Full Model (Hybrid + Live LLM Judge)** | **98.61%** | **0.9326** | 10.56% | **89.32%** | **93.49%** | **+$0.37*** | **+$2.05*** |
+
+*\*Note for zolyfarkas@spf4j: Offline indexing cost: ₹25.40 ($0.30) for 233 Gemini 3.6 Flash test summaries + ₹0.45 ($0.01) for Gemini Embedding 2 vectors = ₹25.85 ($0.31 total). On Slice 3, commit diff embedding cost $0.05 across all 236 builds.*
+
+---
+
+### 4.7 Detailed Analytical Findings Across All 4 Benchmarks
+
+#### 1. Prioritization Quality (APFD and Early Fault Detection)
+Across all four repositories, the Hybrid architecture consistently surpasses the industry-standard TCP-CI GBDT ranker in fault detection speed (APFD):
+- **Apache ShardingSphere:** APFD **0.9795 vs. 0.9771**; Recall @ 10% Budget **96.55% vs. 94.75%**.
+- **Apache Log4j2:** APFD **0.9646 vs. 0.9567**; Recall @ 10% Budget **93.67% vs. 93.04%**.
+- **Apache Sling:** APFD **0.8551 vs. 0.6490** (+20.61 percentage points over TCP-CI GBDT); Recall @ 10% Budget **71.62% vs. 64.41%**.
+- **zolyfarkas@spf4j:** APFD **0.9326 vs. 0.8357** (+9.69 percentage points over TCP-CI GBDT); Recall @ 10% Budget **89.32% vs. 21.48%** (+67.84 percentage points higher early detection!).
+
+This confirms that ordering tests by semantic cosine relevance against the commit diff positions failing tests substantially earlier in the CI execution cycle than historical telemetry alone.
+
+#### 2. The Danger of Path Heuristics (Baseline B)
+Lexical path matching fails catastrophically across all four repositories, missing between 47% and 93% of all regression failures:
+- **ShardingSphere:** 6.69% recall (misses 223 out of 239 failures).
+- **Log4j2:** 12.50% recall (misses 70 out of 80 failures).
+- **Sling:** 33.63% recall (misses 75 out of 113 failures).
+- **spf4j:** 52.78% recall (misses 68 out of 144 failures).
+
+Path heuristics operate on the brittle assumption that changes only affect co-located tests sharing directory stems. They are fundamentally blind to cross-module interactions, interface contract updates, and behavioral regressions.
+
+#### 3. Generalization vs. Historical Feature Memorization (Baseline C)
+TCP-CI ML depends on 150 historical execution and verdict features. When historical failure patterns are non-stationary or projects have modular clean builds:
+- On **Apache Sling**, TCP-CI ML drops to **66.37% recall** (missing 38 of 113 true failures).
+- On **Log4j2**, TCP-CI ML misses zero-history regressions on clean modules.
+- In contrast, our semantic-conformal architecture reads the test functional summary and the commit diff zero-shot, achieving **99.11% recall on Sling**, **100.00% recall on Log4j2**, and **97.92% recall on spf4j**.
 
 #### 4. Cost and Budget Trade-offs
-TCP-CI ML utilizes an arbitrary, hardcoded 50% budget cut. When evaluated at equivalent high-reduction constraints (~90% test reduction / 10% budget):
-- TCP-CI ML achieves **92.89%** recall.
-- Our Hybrid High-Savings regime achieves **94.14%** recall (+1.25% higher) while saving **+$45.07** in compute (nearly doubling TCP-CI's $24.53 savings).
+TCP-CI ML utilizes an arbitrary, hardcoded 50% budget cut. When evaluated under aggressive test reduction constraints (~75% to 90% test reduction):
+- On **spf4j**, Hybrid High-Savings slashes test suite volume by **80.16%** while capturing **93.75% of failures**, delivering **+$3.13** ($0.10/hr) and **+$15.85** ($0.50/hr) in net compute savings.
+- On **Sling**, Hybrid High-Savings reduces test executions by **74.77%** while detecting **74.34% of failures**, delivering **+$12.47** ($0.10/hr) and **+$62.79** ($0.50/hr) net savings.
 
-#### 5. Conditional vs. Unconditional Conformal Risk: Demystifying the Recall Guarantee
-A core question in statistical test selection is how risk is defined under extreme class imbalance. In continuous integration, the vast majority of builds pass (91.0% in ShardingSphere Slice 2):
-- **Unconditional Calibration (Averaging over all builds):** Setting loss to 0 on the 334 passing builds dilutes empirical risk by approximately 10x ($\hat{R}_{\text{unconditional}} \approx 0.09 \times \text{loss}_{\text{failing}}$). A threshold that misses 40% of failures on buggy builds still satisfies an unconditional error bound $\le 5\%$. On Slice 3, this calibrated to $\hat{\lambda} = 0.5272$, yielding **59.41% recall** and **29.56% test reduction**.
-- **Failure-Conditional Calibration (Calibrating only on failing builds):** Conditioning exclusively on the 33 builds with active failures removes dilution. The calibrated threshold shifts down to $\hat{\lambda}_{\text{cond}} = 0.4656$. On Slice 3, this achieves **94.98% fault recall** (227/239 failures caught), mathematically satisfying the user's $\ge 95\%$ confidence target ($\alpha = 0.05$).
-- **The Empirical Trade-off:** However, failure-conditional calibration collapses test reduction from **29.56% to only 4.71%**, as the pure semantic layer must remain ultra-conservative to guarantee safety on unseen code.
-- **Why Hybrid Triage is Essential:** This trade-off provides the theoretical justification for our **Hybrid Architecture**. Decoupling flaky/chronic failure detection (handled by the telemetry Fragile Guard) from code-change semantic triage enables the Hybrid Model to achieve **99.58% recall AND 29.54% to 91.77% test reduction**, overcoming the limitation of pure conformal semantic selection.
+#### 5. Two-Sided Ablation: Why Hybrid Triage is Essential
+The Fragile Test Guard alone caught 92.47% (ShardingSphere), 88.75% (Log4j2), 68.14% (Sling), and 79.86% (spf4j) of failures. However, telemetry is structurally blind to zero-history regressions on newly modified features:
+- In Sling, Fragile Guard alone missed **36 true regressions** that had never previously failed.
+- In spf4j, Fragile Guard alone missed **29 true regressions**.
+- In ShardingSphere, Fragile Guard alone missed **18 true regressions**.
+
+By decoupling flaky/chronic failure protection (Fragile Guard) from code-change semantic triage (Conformal Semantic Layer), the **Hybrid Architecture** captures **97.92% to 100.00% of all failures** while preserving substantial test reduction.
 
 #### 6. Qualitative Case Study: Catching Zero-History Regressions with Semantic Embeddings
 The two-sided ablation revealed that the Fragile Test Guard alone caught 92.47% of failures but missed **18 true regressions**, all of which had zero prior failure history (`REC_LastVerdict == 0`, `RecentFailRate == 0`, `TotalFailRate == 0`). Telemetry was blind to them by construction.
@@ -250,17 +301,13 @@ The two-sided ablation revealed that the Fragile Test Guard alone caught 92.47% 
 The exponential decay factor $\rho$ balances recent vs. historical calibration data. We conducted a parameter sweep across $\rho \in [0.90, 0.95, 0.98, 0.99, 0.995, 0.999, 1.0]$ evaluated strictly on Slice 1 (Tuning) using temporal 5-fold cross-validation.
 - Calculated Kish’s effective sample size:
   $$N_{\text{eff}} = \frac{(\sum_{i=1}^n w_i)^2}{\sum_{i=1}^n w_i^2}$$
-- Selected $\rho^* = 0.995$, which minimizes threshold variance across sequential folds while maintaining sufficient effective sample size to prevent overfitting to isolated builds.
+- Selected $\rho^* = 0.995$ for ShardingSphere and Log4j2, $\rho^* = 0.95$ for Sling, and $\rho^* = 0.999$ for spf4j, minimizing threshold variance across sequential folds while maintaining sufficient effective sample size to prevent overfitting.
 
 ### 5.2 Hybrid Live LLM Batch Selector for Boundary Tests
 While clear relevant and irrelevant tests are decided by vector similarity, tests close to the threshold boundary benefit from deeper reasoning. We implemented a hybrid architecture:
 1. **Tier 1:** Tests with $\text{sim} \ge \hat{\lambda} + \delta$ are executed; tests with $\text{sim} < \hat{\lambda} - \delta$ are skipped.
 2. **Tier 2 (LLM Judge):** Tests within the boundary band $[\hat{\lambda} - \delta, \hat{\lambda} + \delta]$ are batched with their functional summaries and the commit diff (truncated to 6,000 characters) and evaluated via Gemini Flash.
 3. **Disk-Cached Ingestion:** Every decision is indexed via cryptographic hash, guaranteeing 100% reproducibility and zero redundant API costs.
-
-**Results of the Live LLM Judge (Dual-Regime Accounting):**
-- **ShardingSphere:** Evaluated 1,701 live LLM calls. Test reduction increased from **34.70% to 42.63%** (saving 28,100 additional test executions) while maintaining **99.16% fault recall** (catching 237 of 239 failures). Under Regime 1 (batch caching, $0.66 API cost), net savings reaches **+$20.23**; under Regime 2 (live pay-as-you-go, $13.20 API cost), net savings remains solidly positive at **+$7.69** ($0.10/hr VM) and **+$91.25** ($0.50/hr enterprise runner).
-- **Log4j2:** Evaluated 995 live LLM calls. Test reduction expanded from **22.23% to 40.36%** (saving 43,368 tests) with **100.00% fault recall**. Under Regime 1 ($0.32 API cost), net savings reaches **+$5.67**; under Regime 2 ($6.35 API cost), net savings achieves **+$23.73** on standard enterprise CI runners.
 
 ### 5.3 Real-World Financial, Developer Latency, and Green Computing Metrics
 To measure impact beyond test counts, we integrated full lifecycle accounting:
@@ -280,6 +327,16 @@ To measure impact beyond test counts, we integrated full lifecycle accounting:
 | | Hybrid (Balanced, $\lambda=0.53$) | 163 builds | 11.2 min / build | 13.4 kg | +$263 |
 | | **Hybrid (High-Savings, $\lambda=0.58$)** | **54 builds** | **33.8 min / build** | **40.3 kg** | **+$828** |
 | | **Full Model (Hybrid + LLM Judge)** | **95 builds** | **20.4 min / build** | **24.4 kg** | **+$465** |
+| **Apache Sling** | Path Heuristic (Baseline B) | 256 builds | 10.6 min / build | 40.0 kg | +$238 |
+| | TCP-CI ML (Baseline C, top-50%) | 301 builds | 9.0 min / build | 34.1 kg | +$200 |
+| | Hybrid (Balanced, $\lambda=0.51$) | 1,479 builds | 1.9 min / build | 7.3 kg | +$23 |
+| | **Hybrid (High-Savings, $\lambda=0.58$)** | **201 builds** | **13.4 min / build** | **50.9 kg** | **+$310** |
+| | **Full Model (Hybrid + LLM Judge)** | **4,777 builds** | **0.7 min / build** | **2.6 kg** | **-$8** |
+| **zolyfarkas@spf4j** | Path Heuristic (Baseline B) | 533 builds | 5.1 min / build | 8.2 kg | +$103 |
+| | TCP-CI ML (Baseline C, top-50%) | 541 builds | 5.1 min / build | 8.1 kg | +$101 |
+| | Hybrid (Balanced, $\lambda=0.52$) | 1,139 builds | 2.5 min / build | 3.9 kg | +$36 |
+| | **Hybrid (High-Savings, $\lambda=0.58$)** | **336 builds** | **8.1 min / build** | **12.9 kg** | **+$177** |
+| | **Full Model (Hybrid + LLM Judge)** | **2,832 builds** | **1.1 min / build** | **1.7 kg** | **+$1** |
 
 ### 5.4 Unified Experiment Pipeline Orchestration
 To ensure full experimental reproducibility, the entire pipeline is consolidated under a single orchestration entry point (`experiments/run_pipeline.py`). Executing `python experiments/run_pipeline.py <project>` sequentially runs:

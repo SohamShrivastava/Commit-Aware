@@ -243,6 +243,7 @@ def run_drift_monitor(project_key, lambda_hat=None, alpha=0.05, epsilon=DEFAULT_
         try:
             from src.online_selection.semantic_selector import SemanticSelector
             selector = SemanticSelector(project_key, use_api=True)
+            selector.precompute_diffs_for_records(records)
         except Exception as e:
             print(f"WARNING: Cannot initialize selector: {e}")
             print("Will use default similarity scores for builds without precomputed scores.")
@@ -300,6 +301,9 @@ def run_drift_monitor(project_key, lambda_hat=None, alpha=0.05, epsilon=DEFAULT_
     print(f"  Miss-rate: mean={summary['miss_rate_stats']['mean']:.4f}, "
           f"max={summary['miss_rate_stats']['max']:.4f}")
     print(f"{'=' * 60}")
+
+    if selector:
+        selector.save_diff_cache()
 
     # Save results
     output = {
