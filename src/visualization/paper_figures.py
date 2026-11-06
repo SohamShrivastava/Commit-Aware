@@ -372,8 +372,10 @@ Summaries & Log4j2 & gemini-3.5-flash & 1{,}064 tests & 250.16 \\
 Embeddings & Log4j2 & gemini-embedding-2 & 1{,}064 vectors & 2.43 \\
 Summaries & ShardingSphere & gemini-3.5-flash & 2{,}161 tests & 487.12 \\
 Embeddings & ShardingSphere & gemini-embedding-2 & 2{,}161 vectors & 4.18 \\
+Summaries & Sling & gemini-3.6-flash & 1{,}290 tests & 140.82 \\
+Embeddings & Sling & gemini-embedding-2 & 1{,}290 vectors & 2.49 \\
 \midrule
-\multicolumn{4}{l}{\textbf{Total Offline Indexing}} & \textbf{743.89} \\
+\multicolumn{4}{l}{\textbf{Total Offline Indexing}} & \textbf{887.20} \\
 \bottomrule
 \end{tabular}
 \end{table}
