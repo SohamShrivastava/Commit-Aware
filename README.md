@@ -118,15 +118,19 @@ To reproduce the full benchmark evaluation, baseline comparisons, cost models, a
 # Evaluate Apache ShardingSphere
 python experiments/run_pipeline.py shardingsphere
 
-# Evaluate Apache Log4j2
-python experiments/run_pipeline.py log4j2
+# Evaluate Apache Sling
+python experiments/run_pipeline.py sling
+
+# Evaluate zolyfarkas@spf4j
+python experiments/run_pipeline.py spf4j
 ```
 
 ### Generating Publication Figures & Tables
 ```bash
 # Generate high-resolution figures and LaTeX tables
 python -m src.visualization.paper_figures shardingsphere
-python -m src.visualization.paper_figures log4j2
+python -m src.visualization.paper_figures sling
+python -m src.visualization.paper_figures spf4j
 ```
 
 ---
@@ -141,5 +145,21 @@ python -m src.visualization.paper_figures log4j2
 * **Hybrid Model (Balanced):** **99.58% Recall** | **29.54% Reduction** | **+$14.45 Net Savings** (Catches all 18 zero-history bugs)
 * **Hybrid Model (High-Savings):** **94.14% Recall** | **91.77% Reduction** | **+$45.07 Net Savings**
 * **Full Model (Hybrid + LLM Judge):** **99.16% Recall** | **42.63% Reduction** | **+$20.23 Net Savings**
+
+### Apache Sling (562 builds, 113 true failures)
+* **Run All (Baseline A):** 100.00% Recall | 0.00% Reduction | -$0.11 Net Savings
+* **Path Heuristic (Baseline B):** 33.63% Recall (misses 75 failures) | 58.74% Reduction | +$9.77 Net Savings
+* **TCP-CI GBDT (Baseline C):** 66.37% Recall | 50.13% Reduction | +$8.32 Net Savings
+* **Hybrid Model (Balanced):** **99.11% Recall** | **10.74% Reduction** | **+$1.69 Net Savings** (Catches 36 zero-history bugs)
+* **Hybrid Model (High-Savings):** **74.34% Recall** | **74.77% Reduction** | **+$12.47 Net Savings**
+* **Full Model (Hybrid + LLM Judge):** **99.11% Recall** | **3.79% Reduction** | **+$0.52 Net Savings**
+
+### zolyfarkas@spf4j (236 builds, 144 true failures)
+* **Run All (Baseline A):** 100.00% Recall | 0.00% Reduction | -$0.05 Net Savings
+* **Path Heuristic (Baseline B):** 52.78% Recall (misses 68 failures) | 50.96% Reduction | +$1.97 Net Savings
+* **TCP-CI GBDT (Baseline C):** 94.44% Recall | 50.21% Reduction | +$1.94 Net Savings
+* **Hybrid Model (Balanced):** **97.92% Recall** | **24.49% Reduction** | **+$0.92 Net Savings** (Catches 29 zero-history bugs)
+* **Hybrid Model (High-Savings):** **93.75% Recall** | **80.16% Reduction** | **+$3.13 Net Savings**
+* **Full Model (Hybrid + LLM Judge):** **98.61% Recall** | **10.56% Reduction** | **+$0.37 Net Savings**
 
 Detailed case studies (including commit `c47772c3` catching cross-module regressions missed by telemetry) and ablation experiments are documented in [`progress.md`](progress.md).
