@@ -3,17 +3,16 @@
 \caption{Subjects and chronological slices. Each cell gives builds / test executions / failures.}
 \label{tab:subjects}
 \footnotesize
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}lrr@{}}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrrr@{}}
 \toprule
- & \textbf{ShardingSphere} & \textbf{Log4j2} \\
+ & \textbf{ShardingSphere} & \textbf{Sling} & \textbf{spf4j} \\
 \midrule
-Indexed test files & 2,161 & 1,064 \\
-Tuning (25\%) & 262 / 195,343 / 900 & 110 / 50,647 / 0 \\
-Calibration (35\%) & 367 / 283,897 / 208 & 154 / 82,155 / 0 \\
-Evaluation (40\%) & 420 / 354,301 / 239 & 177 / 107,451 / 2 \\
-Failing evaluation builds & 34 & 2 \\
-Studied period & Jan--Nov 2021 & Sep 2019--Jul 2020 \\
+Indexed test files & 2,161 & 1,290 & 233 \\
+Tuning (25\%) & 262 / 195,343 / 900 & 350 / 73,450 / 67 & 146 / 17,820 / 98 \\
+Calibration (35\%) & 367 / 283,897 / 208 & 491 / 104,230 / 89 & 205 / 24,861 / 120 \\
+Evaluation (40\%) & 420 / 354,301 / 239 & 562 / 121,145 / 113 & 236 / 28,564 / 144 \\
+Failing evaluation builds & 34 & 111 & 128 \\
 \bottomrule
 \end{tabular}
 \end{table}

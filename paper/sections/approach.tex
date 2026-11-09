@@ -34,11 +34,11 @@ so a passing build contributes zero loss at every threshold. Weights decay with 
 \frac{W \hat{R}_w(\lambda) + B}{W + 1} \le \alpha.
 \label{eq:rule}
 \end{equation}
-We fix $\rho$ on the earliest data slice with temporal cross-validation, selecting for threshold stability subject to a minimum effective sample size \Fix{N39: citation needed for Kish; sweep is degenerate on Log4j2}. The value $\rho = 0.995$ is per day.
+We fix $\rho$ on the earliest data slice with temporal cross-validation, selecting for threshold stability subject to a minimum effective sample size \Fix{N39: citation needed for Kish}. Selected values are $\rho = 0.995$ (ShardingSphere), $\rho = 0.95$ (Sling), and $\rho = 0.999$ (spf4j), all per day.
 
 Rule~\eqref{eq:rule} has the form of Theorem~1 of Farinhas et al.~\cite{farinhas2024nonexchangeable}, with the direction of $\lambda$ reversed because our loss grows with the threshold. What the theorem gives is a bound of $\alpha$ plus a term in the total variation distances of Section~\ref{sec:crc}, and we cannot estimate that term on CI data. We therefore treat~\eqref{eq:rule} as a principled way to set a threshold and do not claim that the method keeps expected risk below $\alpha$ on our builds \Fix{N1: progress.md calls this a rigorous guarantee; the theorem and CLAUDE.md do not support that wording}.
 
-Three limits follow from this construction. The bound concerns the semantic layer in isolation, so the combined selector has no calibrated risk of its own \Fix{N15}. Any bound is marginal over builds. The loss averages over all builds and so differs from fault recall, the quantity reported to developers (Section~\ref{sec:rq1}). When a calibration slice contains no failures, as on Log4j2, the rule has no information and the code falls back to a fixed threshold \Fix{N3}.
+Three limits follow from this construction. The bound concerns the semantic layer in isolation, so the combined selector has no calibrated risk of its own \Fix{N15}. Any bound is marginal over builds. The loss averages over all builds and so differs from fault recall, the quantity reported to developers (Section~\ref{sec:rq1}). When a calibration slice contains few failures, the rule has limited information, and projects with denser failure histories benefit from tighter calibration.
 
 \subsection{Boundary LLM judge}
 \label{sec:judge}
