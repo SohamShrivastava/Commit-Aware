@@ -205,9 +205,9 @@ Because cloud API pricing distinguishes between cached batch tiers and live inte
 | **Fragile Guard Only (Ablation)** | 68.14% | 0.8660 | 99.80% | 68.92% | 68.92% | +$16.68 | +$83.85 |
 | **Hybrid (Balanced, $\lambda=0.51$)** | **99.11%** | **0.8551** | 10.74% | **71.62%** | **75.23%** | +$1.69 | +$8.92 |
 | **Hybrid (High-Savings, $\lambda=0.58$)** | **74.34%** | **0.8551** | **74.77%** | **71.62%** | **75.23%** | **+$12.47** | **+$62.79** |
-| **Full Model (Hybrid + Live LLM Judge)** | **99.11%** | **0.8551** | 3.79% | **71.62%** | **75.23%** | **+$0.52*** | **+$3.07*** |
+| **Full Model (Hybrid + Live LLM Judge)** | **96.46%** | **0.8551** | **24.65%** | **71.62%** | **75.23%** | **+$3.78*** | **+$20.37*** |
 
-*\*Note for Apache Sling: Offline indexing cost: ₹140.82 ($1.69) for 1,290 Gemini 3.6 Flash test summaries + ₹2.49 ($0.03) for Gemini Embedding 2 vectors = ₹143.31 ($1.72 total). On Slice 3, commit diff embedding cost $0.11 across all 562 builds. Boundary LLM decisions are cached with zero marginal re-run cost.*
+*\*Note for Apache Sling: Offline indexing cost: ₹140.82 ($1.69) for 1,290 Gemini 3.6 Flash test summaries + ₹2.49 ($0.03) for Gemini Embedding 2 vectors = ₹143.31 ($1.72 total). On Slice 3, commit diff embedding cost $0.11 across all 562 builds. Live boundary LLM judge evaluated 1,034 calls (3.36M prompt tokens, 1,167 output tokens) at $0.25 batch / $1.18 standard live rate, achieving 96.46% recall (109/113 failures) and 24.65% test reduction. Net savings is +$3.78 (Batch) / +$2.86 (Live) at $0.10/hr VM, and +$20.37 (Batch) / +$19.45 (Live) at $0.50/hr VM. All judgments permanently cached on disk with zero marginal re-run cost.*
 
 ---
 
@@ -224,9 +224,9 @@ Because cloud API pricing distinguishes between cached batch tiers and live inte
 | **Fragile Guard Only (Ablation)** | 79.86% | 0.9160 | 98.56% | 89.32% | 89.97% | +$3.86 | +$19.50 |
 | **Hybrid (Balanced, $\lambda=0.52$)** | **97.92%** | **0.9326** | 24.49% | **89.32%** | **93.49%** | +$0.92 | +$4.81 |
 | **Hybrid (High-Savings, $\lambda=0.58$)** | **93.75%** | **0.9326** | **80.16%** | **89.32%** | **93.49%** | **+$3.13** | **+$15.85** |
-| **Full Model (Hybrid + Live LLM Judge)** | **98.61%** | **0.9326** | 10.56% | **89.32%** | **93.49%** | **+$0.37*** | **+$2.05*** |
+| **Full Model (Hybrid + Live LLM Judge)** | **96.53%** | **0.9326** | **42.11%** | **89.32%** | **93.49%** | **+$1.52*** | **+$8.20*** |
 
-*\*Note for zolyfarkas@spf4j: Offline indexing cost: ₹25.40 ($0.30) for 233 Gemini 3.6 Flash test summaries + ₹0.45 ($0.01) for Gemini Embedding 2 vectors = ₹25.85 ($0.31 total). On Slice 3, commit diff embedding cost $0.05 across all 236 builds.*
+*\*Note for zolyfarkas@spf4j: Offline indexing cost: ₹26.02 ($0.31) for 233 Gemini 3.6 Flash test summaries + ₹0.45 ($0.01) for Gemini Embedding 2 vectors = ₹26.47 ($0.32 total). On Slice 3, commit diff embedding cost $0.05 across all 236 builds. Live boundary LLM judge evaluated 388 calls (1.36M prompt tokens, ₹222.06 billed on Google AI Studio Tier 3 live PAYG / $0.10 batch rate), achieving 96.53% recall (139/144 failures) and 42.11% test reduction. Net savings is +$1.52 (Batch) / -$0.97 (Live PAYG) at $0.10/hr VM, and +$8.20 (Batch) / +$5.71 (Live PAYG) at $0.50/hr VM. All judgments permanently cached on disk.*
 
 ---
 
@@ -309,12 +309,12 @@ To measure impact beyond test counts, we integrated full lifecycle accounting:
 | | TCP-CI ML (Baseline C, top-50%) | 301 builds | 9.0 min / build | 34.1 kg | +$200 |
 | | Hybrid (Balanced, $\lambda=0.51$) | 1,479 builds | 1.9 min / build | 7.3 kg | +$23 |
 | | **Hybrid (High-Savings, $\lambda=0.58$)** | **201 builds** | **13.4 min / build** | **50.9 kg** | **+$310** |
-| | **Full Model (Hybrid + LLM Judge)** | **4,777 builds** | **0.7 min / build** | **2.6 kg** | **-$8** |
+| | **Full Model (Hybrid + LLM Judge)** | **123 builds** | **4.4 min / build** | **16.8 kg** | **+$521** |
 | **zolyfarkas@spf4j** | Path Heuristic (Baseline B) | 533 builds | 5.1 min / build | 8.2 kg | +$103 |
 | | TCP-CI ML (Baseline C, top-50%) | 541 builds | 5.1 min / build | 8.1 kg | +$101 |
 | | Hybrid (Balanced, $\lambda=0.52$) | 1,139 builds | 2.5 min / build | 3.9 kg | +$36 |
 | | **Hybrid (High-Savings, $\lambda=0.58$)** | **336 builds** | **8.1 min / build** | **12.9 kg** | **+$177** |
-| | **Full Model (Hybrid + LLM Judge)** | **2,832 builds** | **1.1 min / build** | **1.7 kg** | **+$1** |
+| | **Full Model (Hybrid + LLM Judge)** | **128 builds** | **4.2 min / build** | **6.8 kg** | **+$499** |
 
 ### 5.4 Unified Experiment Pipeline Orchestration
 To ensure full experimental reproducibility, the entire pipeline is consolidated under a single orchestration entry point (`experiments/run_pipeline.py`). Executing `python experiments/run_pipeline.py <project>` sequentially runs:
