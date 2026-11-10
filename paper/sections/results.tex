@@ -36,7 +36,7 @@ The online simulation is a separate experiment on ShardingSphere. The threshold 
 
 Indexing cost \$5.90 for ShardingSphere, \$1.72 for Sling, and \$0.31 for spf4j (Table~\ref{tab:indexing}), totaling \$7.93 for 3,684 test files. Diff embedding across evaluation slices cost \$0.08, \$0.11, and \$0.05 respectively.
 
-At the live rate of \$1.50 per million prompt tokens and \$0.10 per VM-hour, the Full configuration nets +\$7.69 on ShardingSphere, +\$0.52 on Sling, and +\$0.37 on spf4j before indexing. At \$0.50 per VM-hour, all three are positive: +\$91.25, +\$3.07, and +\$2.05. The judge adds most value on ShardingSphere, where the evaluation window has the most test executions. On smaller projects the compute saved by the judge is small relative to its token cost.
+At the live provider rate and \$0.10 per VM-hour, the Full configuration nets +\$7.69 on ShardingSphere, -\$1.81 on Sling, and -\$1.02 on spf4j before indexing (turning to +\$20.23, +\$3.78, and +\$1.52 under batch pricing). At \$0.50 per enterprise VM-hour, all three are strongly positive: +\$91.25, +\$14.78, and +\$5.66 under live billing (+\$104.15, +\$20.37, and +\$8.20 at batch rate). The judge delivers the strongest financial return on ShardingSphere, where test executions are dense. On smaller suites, the live single-request token cost slightly outpaces cheap 2-core VM savings, making batch triage or the hybrid operating points the practical recommendation for smaller teams.
 
 The Hybrid High-Savings operating point, which uses no live LLM, nets +\$45.07 on ShardingSphere, +\$12.47 on Sling, and +\$3.13 on spf4j at \$0.10 per VM-hour. Table~\ref{tab:impact} gives break-even and longer-term figures.
 

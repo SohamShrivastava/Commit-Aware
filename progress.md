@@ -207,7 +207,7 @@ Because cloud API pricing distinguishes between cached batch tiers and live inte
 | **Hybrid (High-Savings, $\lambda=0.58$)** | **74.34%** | **0.8551** | **74.77%** | **71.62%** | **75.23%** | **+$12.47** | **+$62.79** |
 | **Full Model (Hybrid + Live LLM Judge)** | **96.46%** | **0.8551** | **24.65%** | **71.62%** | **75.23%** | **+$3.78*** | **+$20.37*** |
 
-*\*Note for Apache Sling: Offline indexing cost: ₹140.82 ($1.69) for 1,290 Gemini 3.6 Flash test summaries + ₹2.49 ($0.03) for Gemini Embedding 2 vectors = ₹143.31 ($1.72 total). On Slice 3, commit diff embedding cost $0.11 across all 562 builds. Live boundary LLM judge evaluated 1,034 calls (3.36M prompt tokens, 1,167 output tokens) at $0.25 batch / $1.18 standard live rate, achieving 96.46% recall (109/113 failures) and 24.65% test reduction. Net savings is +$3.78 (Batch) / +$2.86 (Live) at $0.10/hr VM, and +$20.37 (Batch) / +$19.45 (Live) at $0.50/hr VM. All judgments permanently cached on disk with zero marginal re-run cost.*
+*\*Note for Apache Sling: Offline indexing cost: ₹140.82 ($1.69) for 1,290 Gemini 3.6 Flash test summaries + ₹2.49 ($0.03) for Gemini Embedding 2 vectors = ₹143.31 ($1.72 total). On Slice 3, commit diff embedding cost $0.11 across all 562 builds. Live boundary LLM judge evaluated 1,034 calls (3.36M prompt tokens, 1,167 output tokens) with verified provider spend of ₹491.25 ($5.85 live PAYG on Google AI Studio Tier 3 / $0.25 batch rate), achieving 96.46% recall (109/113 failures) and 24.65% test reduction. Net savings is -$1.81 (Live PAYG) / +$3.78 (Batch) at $0.10/hr VM, and +$14.78 (Live PAYG) / +$20.37 (Batch) at $0.50/hr VM. All judgments permanently cached on disk with zero marginal re-run cost.*
 
 ---
 
