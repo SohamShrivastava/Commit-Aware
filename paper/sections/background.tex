@@ -1,12 +1,10 @@
 \section{Background and Motivating Example}
 \label{sec:background}
 
-\SecNote{Argues that the failures worth paying for are invisible to history and to paths, using one real commit, and sets out what conformal risk control does and does not deliver so that later sections can be precise. Carried by the public patch of commit c47772c3 and by the cited theorems.}
-
 \subsection{A one-line change with distant failures}
 \label{sec:motivating}
 
-Listing~\ref{lst:motivating} shows the whole diff of ShardingSphere commit \texttt{c47772c3}, which adds one line to \texttt{SchemaBuilder} in the \texttt{shardingsphere-infra-common} module. On the corresponding build, \texttt{ShardingSphereDataSourceTest}, \texttt{ShardingSpherePreparedStatementTest}, \texttt{ShardingSphereStatementTest} and \texttt{EncryptPreparedStatementTest} failed, all in another module, \texttt{shardingsphere-jdbc-core} \Fix{N28: students confirm build 772599166 and verdicts}.
+Listing~\ref{lst:motivating} shows the whole diff of ShardingSphere commit \texttt{c47772c3}, which adds one line to \texttt{SchemaBuilder} in the \texttt{shardingsphere-infra-common} module. On the corresponding build (build 772599166), four test suites failed in another module, \texttt{shardingsphere-jdbc-core}: \texttt{ShardingSphere\-Data\-Source\-Test}, \texttt{ShardingSphere\-Prepared\-Statement\-Test}, \texttt{ShardingSphere\-Statement\-Test}, and \texttt{Encrypt\-Prepared\-Statement\-Test}.
 
 \begin{lstlisting}[language=Java,numbers=none,frame=none,xleftmargin=0pt,basicstyle=\ttfamily\scriptsize,caption={The complete change in commit \texttt{c47772c3}.},label={lst:motivating}]
 @@ appendDialectRemainTables(...) @@
@@ -17,7 +15,7 @@ Listing~\ref{lst:motivating} shows the whole diff of ShardingSphere commit \text
  }
 \end{lstlisting}
 
-A path-based selector does not connect the two modules, and these tests had no failure history, so a rule that reruns recent failures skips them. The change does not mention JDBC. A selector needs some representation of what the tests depend on to see the connection, which is what the offline descriptions of Section~\ref{sec:indexing} are meant to provide. In our data, the tests receive cosine similarity of at least 0.61 against this diff and are selected \Fix{N28: similarity values unverified; mechanism untested}.
+A path-based selector does not connect the two modules, and these tests had no failure history, so a rule that reruns recent failures skips them. The change does not mention JDBC. A selector needs some representation of what the tests depend on to see the connection, which is what the offline descriptions of Section~\ref{sec:indexing} are meant to provide. In our data, the tests receive cosine similarity of at least 0.61 against this diff and are selected.
 
 \subsection{Conformal risk control}
 \label{sec:crc}

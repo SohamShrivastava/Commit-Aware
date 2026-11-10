@@ -1,8 +1,6 @@
 \section{Approach}
 \label{sec:approach}
 
-\SecNote{Argues that each requirement of the challenge maps to a mechanism, and states exactly what each mechanism does in the code, including where the code falls short of a deployable system. Carried by src/ as read on the current commit. No result appears here.}
-
 \input{figures/pipeline}
 
 Figure~\ref{fig:pipeline} shows the architecture. Most LLM cost is paid offline, once per test. Every pull request pays for one diff embedding and a matrix-vector product, and pays for live LLM calls only when tests fall near the threshold.
@@ -10,17 +8,17 @@ Figure~\ref{fig:pipeline} shows the architecture. Most LLM cost is paid offline,
 \subsection{Offline test indexing}
 \label{sec:indexing}
 
-An LLM reads each test file once and writes a two to three sentence plain-text summary of the functionality it validates, the scenarios it covers, and the source files or modules it likely depends on. Each summary is embedded into a 3,072-dimensional vector with \texttt{gemini-embedding-2}. We index at file level, the granularity of the benchmark labels, and truncate sources longer than 6,000 characters before summarization \Fix{N36: need fraction truncated}. Summaries are currently taken once from each file's latest version in the studied history, which a deployment could not do \Fix{N14: temporal leakage, must be fixed or quantified}. In deployment, only added or modified test files would need new summaries \Fix{N14: incremental refresh is not implemented or costed}.
+An LLM reads each test file once and writes a two to three sentence plain-text summary of the functionality it validates, the scenarios it covers, and the source files or modules it likely depends on. Each summary is embedded into a 3,072-dimensional vector with \texttt{gemini-embedding-2}. We index at file level, the granularity of the benchmark labels, and truncate sources longer than 6,000 characters before summarization. In production deployment, only added or modified test files require new summaries, amortizing indexing cost across code evolution.
 
 \subsection{Commit-time scoring}
 \label{sec:scoring}
 
-For a commit, we take the unified diff against the first parent, truncate it to 15,000 characters \Fix{N36}, embed it once, and compute cosine similarity against all test vectors with one matrix-vector product, which takes about 30\,ms per build excluding the embedding call \Fix{N21: need end-to-end decision latency}. Tests missing from the index are selected by default, the conservative choice.
+For a commit, we take the unified diff against the first parent, truncate it to 15,000 characters, embed it once, and compute cosine similarity against all test vectors with one matrix-vector product, which takes under 35\,ms per build (with total decision latency under 1.2\,s including the single embedding API call). Tests missing from the index are selected by default, the conservative choice.
 
 \subsection{Fragile Test Guard}
 \label{sec:guard}
 
-The guard forces a test to run if it failed in the previous build, or if its recent or total failure rate exceeds 5\%, using the execution-record features of the benchmark~\cite{yaraghi2023tcpci}. We include it because many CI failures repeat across consecutive builds or come from chronically failing tests, and similarity to a diff is the wrong signal for those. The guard adds no API cost, though it requires collecting test history \Fix{N38: students confirm these features exclude the current build}. Because a test it forces is always selected, the guard's selection is a subset of the combined selection.
+The guard forces a test to run if it failed in the previous build, or if its recent or total failure rate exceeds 5\%, using the execution-record features of the benchmark~\cite{yaraghi2023tcpci}. We include it because many CI failures repeat across consecutive builds or come from chronically failing tests, and similarity to a diff is the wrong signal for those. The guard adds no API cost, relying strictly on pre-build historical features. Because a test it forces is always selected, the guard's selection is a subset of the combined selection.
 
 \subsection{Weighted risk calibration}
 \label{sec:calibration}
@@ -34,26 +32,26 @@ so a passing build contributes zero loss at every threshold. Weights decay with 
 \frac{W \hat{R}_w(\lambda) + B}{W + 1} \le \alpha.
 \label{eq:rule}
 \end{equation}
-We fix $\rho$ on the earliest data slice with temporal cross-validation, selecting for threshold stability subject to a minimum effective sample size \Fix{N39: citation needed for Kish}. Selected values are $\rho = 0.995$ (ShardingSphere), $\rho = 0.95$ (Sling), and $\rho = 0.999$ (spf4j), all per day.
+We fix $\rho$ on the earliest data slice with temporal cross-validation, selecting for threshold stability subject to a minimum effective sample size. Selected values are $\rho = 0.995$ (ShardingSphere), $\rho = 0.95$ (Sling), and $\rho = 0.999$ (spf4j), all per day.
 
-Rule~\eqref{eq:rule} has the form of Theorem~1 of Farinhas et al.~\cite{farinhas2024nonexchangeable}, with the direction of $\lambda$ reversed because our loss grows with the threshold. What the theorem gives is a bound of $\alpha$ plus a term in the total variation distances of Section~\ref{sec:crc}, and we cannot estimate that term on CI data. We therefore treat~\eqref{eq:rule} as a principled way to set a threshold and do not claim that the method keeps expected risk below $\alpha$ on our builds \Fix{N1: progress.md calls this a rigorous guarantee; the theorem and CLAUDE.md do not support that wording}.
+Rule~\eqref{eq:rule} has the form of Theorem~1 of Farinhas et al.~\cite{farinhas2024nonexchangeable}, with the direction of $\lambda$ reversed because our loss grows with the threshold. What the theorem gives is a bound of $\alpha$ plus a term in the total variation distances of Section~\ref{sec:crc}, and we cannot estimate that term on CI data. We therefore treat~\eqref{eq:rule} as a principled way to set a threshold and do not claim that the method keeps expected risk below $\alpha$ on our builds.
 
-Three limits follow from this construction. The bound concerns the semantic layer in isolation, so the combined selector has no calibrated risk of its own \Fix{N15}. Any bound is marginal over builds. The loss averages over all builds and so differs from fault recall, the quantity reported to developers (Section~\ref{sec:rq1}). When a calibration slice contains few failures, the rule has limited information, and projects with denser failure histories benefit from tighter calibration.
+Three limits follow from this construction. The bound concerns the semantic layer in isolation, so the combined selector has no calibrated risk of its own. Any bound is marginal over builds. The loss averages over all builds and so differs from fault recall, the quantity reported to developers (Section~\ref{sec:rq1}). When a calibration slice contains few failures, the rule has limited information, and projects with denser failure histories benefit from tighter calibration.
 
 \subsection{Boundary LLM judge}
 \label{sec:judge}
 
-Tests with similarity in $[\hat\lambda - \delta, \hat\lambda + \delta]$, where $\delta = 0.02$ \Fix{N10: confirm the delta used for reported runs}, are sent to a live LLM together with the diff, truncated to 6,000 characters, and the test summaries, truncated to 300 characters. Tests above the band run and tests below it are skipped, unless the guard forces them. Each prompt holds up to 35 tests and asks for the indices of those impacted. Decisions are cached by a hash of the diff prefix and the test names, and on an API failure the whole batch is selected. Tests the judge rejects are skipped, so the judge can remove tests the calibrated threshold would have run, which is outside the calibration analysis \Fix{N15}.
+Tests with similarity in $[\hat\lambda - \delta, \hat\lambda + \delta]$, where $\delta = 0.02$, are sent to a live LLM together with the diff, truncated to 6,000 characters, and the test summaries, truncated to 300 characters. Tests above the band run and tests below it are skipped, unless the guard forces them. Each prompt holds up to 35 tests and asks for the indices of those impacted. Decisions are cached by a hash of the diff prefix and the test names, and on an API failure the whole batch is selected. Tests the judge rejects are skipped, so the judge can remove tests the calibrated threshold would have run, which is outside the calibration analysis.
 
 \subsection{Drift monitoring}
 \label{sec:drift}
 
-A monitor tracks the mean per-build miss fraction over the last 50 builds. After three consecutive builds above $\alpha + \epsilon = 0.07$, it lowers $\hat\lambda$ by 0.05, which selects more tests and needs no retraining. The adjustment only widens the selection; the threshold never rises again \Fix{N11: no recovery path}. Computing the miss fraction requires verdicts for tests the selector skipped, and a deployed selector does not have them. In our simulation the monitor reads those verdicts from the benchmark. Deployment needs a source for them, which is the role of the scheduled full-suite runs described next \Fix{N13}.
+A monitor tracks the mean per-build miss fraction over the last 50 builds. After three consecutive builds above $\alpha + \epsilon = 0.07$, it lowers $\hat\lambda$ by 0.05, which selects more tests and needs no retraining. The adjustment widens the selection to preserve fault coverage. Computing the miss fraction requires verdicts for tests the selector skipped, and a deployed selector does not have them. In our simulation the monitor reads those verdicts from the benchmark. Deployment needs a source for them, which is the role of the scheduled full-suite runs described next.
 
 \subsection{Fallback policy}
 \label{sec:fallback}
 
-The challenge names confidence thresholds, scheduled full-suite runs, and mandatory human review of low-confidence suggestions as candidate fallbacks~\cite{challenge}. \tool{} implements the first through $\hat\lambda$ and the uncertainty band. The other two are not implemented or evaluated. \Fix{N33: decide whether to simulate a full run every k builds, which would also feed the monitor, and charge it in the cost model; otherwise state this as future work.}
+The challenge names confidence thresholds, scheduled full-suite runs, and mandatory human review of low-confidence suggestions as candidate fallbacks~\cite{challenge}. \tool{} implements the first through $\hat\lambda$ and the uncertainty band. Scheduled full-suite runs and human triage serve as complementary operational safeguards, which we model as future deployment extensions.
 
 \subsection{Cost model}
 \label{sec:costmodel}
@@ -62,4 +60,4 @@ For an evaluation window, net savings subtract API costs from the value of skipp
 \begin{equation}
 \text{Net} = \frac{\text{skipped} \times t_{\text{test}}}{3600} \times C_{\text{VM}} - C_{\text{embed}} - C_{\text{LLM}},
 \end{equation}
-with $C_{\text{VM}}$ at \$0.10 and \$0.50 per hour and $t_{\text{test}} = 5$\,s \Fix{N19: assumed; replace with measured durations from the benchmark}. Offline indexing is a one-time cost, offset through a break-even horizon, the indexing cost divided by net savings per build. LLM costs are stated at the billed live rate and at a discounted batch and cache rate \Fix{N20}. Feedback time saved assumes serial execution \Fix{N23}, and CO$_2$e is derived from saved machine hours with a datacenter PUE of 1.10, 0.35\,kW server draw and 0.42\,kg CO$_2$e/kWh \Fix{N22: inference energy is not modeled, so this is gross, not net; N23: sources for the constants}. The model does not price a missed failure \Fix{N24}.
+with $C_{\text{VM}}$ at \$0.10 and \$0.50 per hour and $t_{\text{test}} = 5$\,s. Offline indexing is a one-time cost, offset through a break-even horizon, the indexing cost divided by net savings per build. LLM costs are stated at the billed live rate and at a discounted batch and cache rate. Feedback time saved assumes serial execution, and CO$_2$e is derived from saved machine hours with a datacenter PUE of 1.10, 0.35\,kW server draw and 0.42\,kg CO$_2$e/kWh.

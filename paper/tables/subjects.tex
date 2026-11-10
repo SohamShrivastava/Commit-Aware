@@ -1,18 +1,29 @@
 \begin{table}[t]
 \centering
-\caption{Subjects and chronological slices. Each cell gives builds / test executions / failures.}
+\caption{Subject characteristics and chronological partition statistics.}
 \label{tab:subjects}
 \footnotesize
 \setlength{\tabcolsep}{3pt}
-\begin{tabular}{@{}lrrr@{}}
+\begin{tabular}{@{}llrrr@{}}
 \toprule
- & \textbf{ShardingSphere} & \textbf{Sling} & \textbf{spf4j} \\
+\textbf{Subject} & \textbf{Data Slice} & \textbf{Builds} & \textbf{Executions} & \textbf{Failures} \\
 \midrule
-Indexed test files & 2,161 & 1,290 & 233 \\
-Tuning (25\%) & 262 / 195,343 / 900 & 350 / 73,450 / 67 & 146 / 17,820 / 98 \\
-Calibration (35\%) & 367 / 283,897 / 208 & 491 / 104,230 / 89 & 205 / 24,861 / 120 \\
-Evaluation (40\%) & 420 / 354,301 / 239 & 562 / 121,145 / 113 & 236 / 28,564 / 144 \\
-Failing evaluation builds & 34 & 111 & 128 \\
+\multirow{3}{*}{\shortstack[l]{\textbf{ShardingSphere}\\ \scriptsize (2,161 tests)}} 
+ & Tuning (25\%)      & 262 & 195,343 & 900 \\
+ & Calibration (35\%) & 367 & 283,897 & 208 \\
+ & Evaluation (40\%)  & 420 & 354,301 & 239 \\
+\midrule
+\multirow{3}{*}{\shortstack[l]{\textbf{Apache Sling}\\ \scriptsize (1,290 tests)}} 
+ & Tuning (25\%)      & 350 &  73,450 &  67 \\
+ & Calibration (35\%) & 491 & 104,230 &  89 \\
+ & Evaluation (40\%)  & 562 & 121,145 & 113 \\
+\midrule
+\multirow{3}{*}{\shortstack[l]{\textbf{spf4j}\\ \scriptsize (233 tests)}} 
+ & Tuning (25\%)      & 146 &  17,820 &  98 \\
+ & Calibration (35\%) & 205 &  24,861 & 120 \\
+ & Evaluation (40\%)  & 236 &  28,564 & 144 \\
+\midrule
+\multicolumn{5}{@{}l}{\scriptsize Failing evaluation builds: ShardingSphere 34 (8.1\%), Sling 111 (19.8\%), spf4j 128 (54.2\%).} \\
 \bottomrule
 \end{tabular}
 \end{table}

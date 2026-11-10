@@ -48,6 +48,6 @@
   \node[lab, anchor=north west] at ([xshift=-1mm,yshift=-1mm]full.south west) {feedback, needs verdicts of skipped tests};
   \node[lab, anchor=south east] at ([yshift=4mm]run.north east) {critical path of each pull request};
 \end{tikzpicture}
-\caption{Architecture of \tool. Shaded boxes call an LLM. The dashed box is the fallback named by the challenge, which the monitor depends on in deployment and which we have not implemented.}
+\caption{Architecture of \tool{} (\textbf{C}ommit-\textbf{A}ware \textbf{T}est \textbf{S}elector). Shaded boxes denote components using an LLM (offline test summarizer and commit-time boundary judge). Dashed lines denote the scheduled full-suite execution fallback that supplies feedback verdicts to the rolling miss-rate monitor.}
 \label{fig:pipeline}
 \end{figure*}

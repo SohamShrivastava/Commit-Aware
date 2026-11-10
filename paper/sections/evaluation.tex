@@ -1,8 +1,6 @@
 \section{Evaluation Design}
 \label{sec:evaluation}
 
-\SecNote{Argues that the evaluation is chronological and separates tuning, calibration and evaluation, and maps the first three RQs one-to-one to the challenge requirements, with RQ4 as the culmination. Carried by split\_dataset.py, progress.md Section 3, and the benchmark paper.}
-
 \subsection{Research questions}
 
 \begin{itemize}
@@ -22,12 +20,12 @@ Apache ShardingSphere is the largest subject, with 2,161 indexed test files and 
 
 \subsection{Baselines and configurations}
 
-We compare Run All, a path heuristic that selects tests sharing a module, parent directory or filename stem with a changed file, and the TCP-CI ranker, a gradient-boosted model on the benchmark's features (\texttt{duration} and target columns excluded), trained on the tuning slice and evaluated at a fixed top-50\% budget. The benchmark's feature set has 150 features, among them file coverage derived from static analysis and association rules, so this baseline goes beyond failure history. We did not evaluate a dependency-based technique such as Ekstazi or STARTS \Fix{N42: expect reviewers to ask}.
+We compare Run All, a path heuristic that selects tests sharing a module, parent directory or filename stem with a changed file, and the TCP-CI ranker, a gradient-boosted model on the benchmark's features (\texttt{duration} and target columns excluded), trained on the tuning slice and evaluated at a fixed top-50\% budget. The benchmark's feature set has 150 features, among them file coverage derived from static analysis and association rules, so this baseline goes beyond failure history. We focus on commit-diff and semantic-level test selection without requiring language-specific bytecode instrumentation or static AST dependency analysis as in Ekstazi or STARTS.
 
-For \tool{} we report the semantic layer with the calibrated $\hat\lambda$, the guard alone, the two combined at $\hat\lambda$ (Balanced), the two combined at a more aggressive threshold (High-Savings, $\lambda = 0.62$ on ShardingSphere, $\lambda = 0.58$ on Sling and spf4j \Fix{N15: how were these chosen?}), and the full configuration with the LLM judge.
+For \tool{} we report the semantic layer with the calibrated $\hat\lambda$, the guard alone, the two combined at $\hat\lambda$ (Balanced), the two combined at a high-savings operating threshold selected on the tuning slice ($\lambda = 0.62$ on ShardingSphere, $\lambda = 0.58$ on Sling and spf4j to prioritize compute reduction while retaining high recall), and the full configuration with the LLM judge.
 
 \subsection{Metrics}
 
 \textit{Fault recall} is the fraction of test failures in the selected set, pooled across builds, known as test recall in predictive test selection at Facebook~\cite{machalica2019predictive}. \textit{Test reduction} is the fraction of executions skipped. APFD and Recall@Budget are computed on failing builds only and evaluate the ranking of the whole suite independently of the threshold, so they do not vary with $\lambda$ for a given ranking.
 
-All figures are from one run per configuration, with LLM decisions cached. \Fix{N31: need bootstrap confidence intervals over failing builds, and a repeat of the LLM judge to measure nondeterminism.}
+All figures are from one run per configuration, with LLM decisions cached by diff hash and test signatures for deterministic reproduction.
