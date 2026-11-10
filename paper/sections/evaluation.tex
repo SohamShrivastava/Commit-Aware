@@ -1,14 +1,17 @@
 \section{Evaluation Design}
 \label{sec:evaluation}
 
-\subsection{Research questions}
+\subsection{Evaluation Objectives}
 
-\begin{itemize}
-    \item[\textbf{RQ1}] \textit{Safety.} Does the calibrated threshold respect the risk it targets, and what fault recall does that risk level deliver?
-    \item[\textbf{RQ2}] \textit{Evolution.} How does a threshold frozen at calibration behave on later builds, and what does online monitoring change?
-    \item[\textbf{RQ3}] \textit{Cost.} After offsetting tokens, what are the net savings, break-even horizon and feedback-time effect?
-    \item[\textbf{RQ4}] \textit{Contribution.} What does each layer add, and what does it cost to catch failures that have no history?
-\end{itemize}
+Our empirical evaluation investigates four primary objectives corresponding to the industrial requirements of commit-aware test selection:
+
+\textbf{Safety and Risk Calibration.} We assess whether weighted conformal risk control respects prescribed theoretical risk bounds across continuous integration builds, and determine the empirical fault recall delivered by the calibrated selection threshold.
+
+\textbf{Robustness under Evolution.} We examine the longitudinal stability of selection thresholds frozen after calibration, quantifying coverage degradation under commit stream drift and evaluating the corrective efficacy of online drift monitoring.
+
+\textbf{Monetary Cost and Developer Latency.} We evaluate the end-to-end economic trade-offs—accounting for offline indexing and online token expenditures—to determine net compute savings, break-even operating horizons, and developer feedback latency.
+
+\textbf{Layer Contributions and Zero-History Detection.} We isolate the individual contributions of telemetry guards, dense semantic retrieval, and LLM judgment, analyzing their respective capacities to catch regressions with and without prior failure history.
 
 \subsection{Subjects}
 

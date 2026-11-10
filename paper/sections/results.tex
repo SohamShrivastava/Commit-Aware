@@ -5,7 +5,7 @@
 
 Table~\ref{tab:benchmark} reports all methods on the three projects.
 
-\subsection{RQ1, Safety}
+\subsection{Safety and Empirical Risk Calibration}
 \label{sec:rq1}
 
 On ShardingSphere, the calibration slice has total weight $W = 301.32$, so the correction moves the empirical ceiling from 0.0500 to 0.046847. This yields $\hat\lambda = 0.5272$, with weighted empirical risk 0.044696 and corrected risk 0.047856. A frozen $\hat\lambda$ on the evaluation slice catches 142 of 239 failures (59.41\%) and skips 29.56\% of executions.
@@ -16,14 +16,14 @@ On spf4j, calibration produces $\hat\lambda = 0.5151$ with $\rho = 0.999$. Froze
 
 The target $\alpha = 0.05$ might suggest roughly 95\% recall, and the measured value is far lower on ShardingSphere. The two numbers measure different things. Passing builds contribute zero loss, and 91.0\% of ShardingSphere's calibration builds pass (334 of 367), which dilutes the calibrated risk. A threshold that misses 40\% of failures on failing builds can still meet the target. On Sling and spf4j, where failing builds are more common, the gap between target risk and observed recall narrows.
 
-\subsection{RQ2, Evolution}
+\subsection{Robustness under Evolution and Concept Drift}
 \label{sec:rq2}
 
 We evaluate two regimes and keep them apart. In the frozen benchmark, $\hat\lambda$ is fixed before the evaluation slice, and all results in Table~\ref{tab:benchmark} are from this regime.
 
 The online simulation is a separate experiment on ShardingSphere. The threshold adapts to the same builds it is measured on, using verdicts that include skipped tests, so its figures are not out-of-sample and do not compare directly with Table~\ref{tab:benchmark}. Across the 420 evaluation builds the monitor triggered four threshold adjustments, keeping the mean rolling per-build miss fraction at 0.48\%. When miss spikes occur, the monitor dynamically lowers the operating threshold by 0.05 to maintain safety coverage under non-stationary commit streams, trading modest test reduction to preserve fault detection.
 
-\subsection{RQ3, Cost}
+\subsection{Monetary Cost, Feedback Latency, and Net ROI}
 \label{sec:rq3}
 
 \input{tables/cost}
@@ -34,7 +34,7 @@ At the live provider rate and \$0.10 per VM-hour, the Full configuration nets +\
 
 The Hybrid High-Savings operating point, which uses no live LLM, nets +\$45.07 on ShardingSphere, +\$12.47 on Sling, and +\$3.13 on spf4j at \$0.10 per VM-hour. Table~\ref{tab:impact} gives break-even and longer-term figures. Decision latency for the cosine dot product against the test index averages 35\,ms per commit. Combined with diff embedding, end-to-end selection completes in under 1.2\,s, making the overhead negligible compared to typical test suite execution durations.
 
-\subsection{RQ4, What each layer contributes}
+\subsection{Layer Contributions and Zero-History Defect Recovery}
 \label{sec:rq4}
 
 \input{tables/ablation}

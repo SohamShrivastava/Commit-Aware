@@ -136,6 +136,7 @@ class LLMBatchSelector:
 
         if use_api and not dry_run:
             try:
+                #type:ignore
                 from google import genai
                 self.client = genai.Client(api_key=GEMINI_API_KEY)
             except ImportError:
@@ -234,6 +235,10 @@ class LLMBatchSelector:
                 response = self.client.models.generate_content(
                     model=GEMINI_MODEL,
                     contents=prompt,
+                    config = {
+                        "temperature": 0.1,
+                        "thinking_config": {"thinking_budget" : 0}, 
+                    },
                 )
                 self.total_llm_calls += 1
 

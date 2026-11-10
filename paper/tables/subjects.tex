@@ -2,11 +2,10 @@
 \centering
 \caption{Subject characteristics and chronological partition statistics.}
 \label{tab:subjects}
-\footnotesize
-\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}llrrr@{}}
 \toprule
-\textbf{Subject} & \textbf{Data Slice} & \textbf{Builds} & \textbf{Executions} & \textbf{Failures} \\
+\textbf{Subject} & \textbf{Partition} & \textbf{Builds} & \textbf{Executions} & \textbf{Failures} \\
 \midrule
 \multirow{3}{*}{\shortstack[l]{\textbf{ShardingSphere}\\ \scriptsize (2,161 tests)}} 
  & Tuning (25\%)      & 262 & 195,343 & 900 \\
@@ -23,7 +22,8 @@
  & Calibration (35\%) & 205 &  24,861 & 120 \\
  & Evaluation (40\%)  & 236 &  28,564 & 144 \\
 \midrule
-\multicolumn{5}{@{}l}{\scriptsize Failing evaluation builds: ShardingSphere 34 (8.1\%), Sling 111 (19.8\%), spf4j 128 (54.2\%).} \\
+\multicolumn{5}{@{}p{0.98\linewidth}@{}}{\scriptsize \textit{Note:} Failing evaluation builds: ShardingSphere 34 (8.1\%), Sling 111 (19.8\%), spf4j 128 (54.2\%).} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}

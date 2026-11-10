@@ -1,21 +1,19 @@
 \section{Background and Motivating Example}
 \label{sec:background}
 
-\subsection{A one-line change with distant failures}
+\subsection{Cross-Module Dependencies and Heuristic Blind Spots}
 \label{sec:motivating}
 
-Listing~\ref{lst:motivating} shows the whole diff of ShardingSphere commit \texttt{c47772c3}, which adds one line to \texttt{SchemaBuilder} in the \texttt{shardingsphere-infra-common} module. On the corresponding build (build 772599166), four test suites failed in another module, \texttt{shardingsphere-jdbc-core}: \texttt{ShardingSphere\-Data\-Source\-Test}, \texttt{ShardingSphere\-Prepared\-Statement\-Test}, \texttt{ShardingSphere\-Statement\-Test}, and \texttt{Encrypt\-Prepared\-Statement\-Test}.
+In large multi-module repositories, code changes in shared infrastructure or low-level utility libraries frequently induce silent failures in distant consumer modules that share neither common directories nor recent historical failure co-occurrences. 
 
-\begin{lstlisting}[language=Java,numbers=none,frame=none,xleftmargin=0pt,basicstyle=\ttfamily\scriptsize,caption={The complete change in commit \texttt{c47772c3}.},label={lst:motivating}]
-@@ appendDialectRemainTables(...) @@
-             throw new ShardingSphereException(ex);
-         }
-     }
-+    EXECUTOR_SERVICE.shutdown();
- }
-\end{lstlisting}
+Consider an illustrative case from Apache ShardingSphere: a developer introduced a single-line modification inside the shared infrastructure module (\texttt{shardingsphere-infra-common}) that invoked \texttt{EXECUTOR\_SERVICE.shutdown()} within the schema-building routine. While syntactically local, this change terminated the shared background thread pool required during database connection initialization. Consequently, four downstream test suites in the database driver module (\texttt{shardingsphere-jdbc-core}) failed during subsequent integration runs.
 
-A path-based selector does not connect the two modules, and these tests had no failure history, so a rule that reruns recent failures skips them. The change does not mention JDBC. A selector needs some representation of what the tests depend on to see the connection, which is what the offline descriptions of Section~\ref{sec:indexing} are meant to provide. In our data, the tests receive cosine similarity of at least 0.61 against this diff and are selected.
+Standard heuristic selection strategies are fundamentally blind to this interaction:
+\begin{itemize}
+    \item \textbf{File- and path-based heuristics} fail because the modified infrastructure classes and the failing JDBC test suites share no common subdirectories, packages, or filename stems.
+    \item \textbf{History- and telemetry-based guards} skip the tests entirely because the failing JDBC suites had passed consistently on prior builds and exhibited zero recent failure history.
+\end{itemize}
+Moreover, the diff contains no textual references to JDBC or data sources. To bridge this semantic gap, a test selector must understand the operational preconditions and runtime resources exercised by test suites. By summarizing test suites offline (Section~\ref{sec:indexing}) and computing dense semantic embeddings against the commit diff, our semantic retrieval layer assigns cosine similarities exceeding 0.60 to the affected JDBC suites, correctly triggering their execution without requiring heavyweight runtime bytecode instrumentation.
 
 \subsection{Conformal risk control}
 \label{sec:crc}
