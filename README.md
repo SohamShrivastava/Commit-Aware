@@ -161,5 +161,3 @@ python -m src.visualization.paper_figures spf4j
 * **Hybrid Model (Balanced):** **97.92% Recall** | **24.49% Reduction** | **+$0.92 Net Savings** (Catches 29 zero-history bugs)
 * **Hybrid Model (High-Savings):** **93.75% Recall** | **80.16% Reduction** | **+$3.13 Net Savings**
 * **Full Model (Hybrid + LLM Judge):** **98.61% Recall** | **10.56% Reduction** | **+$0.37 Net Savings**
-
-Detailed case studies (including commit `c47772c3` catching cross-module regressions missed by telemetry) and ablation experiments are documented in [`progress.md`](progress.md).
