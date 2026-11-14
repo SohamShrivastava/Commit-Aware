@@ -37,61 +37,81 @@ Our system resolves this with a tiered, cost-effective architecture:
                              ▼
               ┌─────────────────────────────┐
               │   Tier 2: LLM Batch Judge   │
-              │  (Gemini Flash with Cache)  │──► Final Selection
+              │     (gemini-3.6-flash)      │──► Final Selection
               └─────────────────────────────┘
 ```
 
-1. **Offline Test Understanding:** Test files are summarized and embedded into a dense 3,072-dimensional semantic index using `gemini-embedding-2`.
+1. **Offline Test Understanding:** Test files are summarized using `gemini-3.6-flash` and embedded into a dense 3,072-dimensional semantic index using `gemini-embedding-2`.
 2. **Tier-1 Fast Screening:**
    - **Fragile Test Guard:** Identifies historically volatile or flaky tests from CI telemetry and guarantees they run.
    - **Semantic Similarity Layer:** Matches commit diff embeddings against test code summaries to catch zero-history regressions across disparate modules.
-3. **Finite-Sample Conformal Risk Control:** Employs non-exchangeable weighted risk calibration (Angelopoulos et al., 2024; Bates et al., 2021) to guarantee fault risk $\le \alpha$ (e.g., $\le 5\%$) without data leakage across chronological splits.
-4. **Tier-2 LLM Boundary Judge:** Tests falling within a narrow confidence band $[\hat{\lambda} - \delta, \hat{\lambda} + \delta]$ are evaluated with their functional code context by Gemini Flash via batched prompts.
+3. **Finite-Sample Conformal Risk Control:** Employs non-exchangeable weighted risk calibration to guarantee fault risk $\le \alpha$ (e.g., $\le 5\%$) without data leakage across chronological splits.
+4. **Tier-2 LLM Boundary Judge:** Tests falling within a narrow confidence band $[\hat{\lambda} - \delta, \hat{\lambda} + \delta]$ are evaluated with their functional code context by `gemini-3.6-flash` via batched prompts and deterministic caching.
 5. **Multi-Dimensional Accounting:** Beyond recall and APFD, measures net cloud savings (at \$0.10/hr and \$0.50/hr VM tiers), developer latency saved, break-even PR horizons, and avoided $\text{CO}_2\text{e}$ carbon emissions.
 
 ---
 
-## 2. Repository Structure
+## 2. LLM & Embedding Models Specification
+
+To ensure rigorous scientific reproducibility, all foundation models, embedding models, and runtime parameters are explicitly specified below:
+
+| Component | Model Name | Role | Primary Hyperparameters | Cost / Token Specs |
+| :--- | :--- | :--- | :--- | :--- |
+| **Test Summarizer** | `gemini-3.6-flash` | Offline Test Functionality Analysis | `temperature: 0.2`<br>`max_output_tokens: 512`<br>`thinking_budget: 0` | \$0.10 / 1M input tokens<br>\$0.40 / 1M output tokens (Run once per test file) |
+| **Vector Embeddings** | `gemini-embedding-2` | Diff & Test Semantic Representations | Output Dims: `3072`<br>Max Context: `2048` tokens | \$0.10 / 1M tokens (35ms per commit dot-product) |
+| **Boundary Triage Judge** | `gemini-3.6-flash` | Tier-2 Ambiguity Classification ($[\hat{\lambda}\pm 0.02]$) | `temperature: 0.1`<br>`thinking_budget: 0`<br>Max Diff: `6000` chars | Batched (up to 35 tests/prompt)<br>Deterministic MD5 Cache |
+
+### Deterministic Caching & Cost Containment
+- **Test Indexing:** Test files are summarized and embedded **once offline**. Summaries and vectors are stored locally in-memory (45 MB float32 array), amortizing upfront cost across all future CI runs.
+- **Online Inference:** The online triage judge uses deterministic MD5 caching keyed on the truncated diff and candidate test set. Cached verdicts execute with zero API latency and zero token cost.
+
+---
+
+## 3. Repository Structure
+
+The repository contains the complete implementation, data preprocessing utilities, and evaluation pipelines:
 
 ```
-ICSE/
+Commit-Aware/
 ├── experiments/
 │   └── run_pipeline.py            # Master end-to-end evaluation orchestration
 ├── src/
-│   ├── config.py                  # Global configurations and API settings
+│   ├── config.py                  # Global configurations and model parameters
 │   ├── conformal/
 │   │   ├── calibration.py         # Non-exchangeable conformal risk calibration
-│   │   └── rho_selection.py       # Exponential decay parameter sweep & Kish ESS
+│   │   └── rho_selection.py       # Temporal decay parameter sweep & Kish ESS
 │   ├── data_pipeline/
-│   │   └── split_dataset.py       # Strict 3-slice chronological dataset partitioning
+│   │   └── split_dataset.py       # 3-slice chronological dataset partitioning
 │   ├── drift/
 │   │   └── drift_monitor.py       # Online concept drift monitoring & recalibration
 │   ├── evaluation/
 │   │   ├── baselines.py           # Baselines: Run-All, Path Heuristic, TCP-CI GBDT
-│   │   ├── cost_analysis.py       # Financial ROI, developer latency, green carbon metrics
+│   │   ├── cost_analysis.py       # Financial ROI, developer latency, carbon metrics
 │   │   └── metrics.py             # APFD, Recall@Budget, and multi-method benchmark
 │   ├── offline_indexing/
 │   │   ├── embed_tests.py         # 3072-dim batch vector embedding generation
-│   │   ├── extract_unique_tests.py# Test file inventory from build execution logs
-│   │   └── llm_test_summarizer.py # LLM test functionality summarization
+│   │   ├── extract_unique_tests.py# Test inventory extraction from build logs
+│   │   └── llm_test_summarizer.py # gemini-3.6-flash test functionality summarizer
 │   ├── online_selection/
-│   │   ├── llm_batch_selector.py  # Tier-2 LLM boundary judge with deterministic cache
+│   │   ├── llm_batch_selector.py  # Tier-2 LLM boundary judge with MD5 caching
 │   │   └── semantic_selector.py   # Vector cosine similarity matching & cache
 │   └── visualization/
 │       └── paper_figures.py       # 300 DPI publication figures & LaTeX tables
-├── progress.md                    # Comprehensive empirical evaluation results & case studies
-├── project_plan.md                # 10-week implementation roadmap
-└── requirements.txt               # Project dependencies
+├── extract_commit_data.py         # Git commit diff and build label extraction
+├── generate_test_summaries.ipynb  # Interactive test summarization & inspection
+├── join_dataset_features.py       # Joins TCP-CI telemetry features to commit records
+├── requirements.txt               # Python package dependencies
+└── README.md                      # Replication guide and artifact documentation
 ```
 
 ---
 
-## 3. Quick Start
+## 4. Quick Start
 
 ### Installation
 ```bash
 # Clone the repository
-git clone "repo link"
+git clone https://anonymous.4open.science/r/Commit-Aware-1703/
 cd Commit-Aware
 
 # Create virtual environment
@@ -112,7 +132,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 ### Running the End-to-End Evaluation Pipeline
-To reproduce the full benchmark evaluation, baseline comparisons, cost models, and LaTeX tables:
+To reproduce the benchmark evaluation, baseline comparisons, cost models, and LaTeX tables:
 
 ```bash
 # Evaluate Apache ShardingSphere
@@ -135,7 +155,7 @@ python -m src.visualization.paper_figures spf4j
 
 ---
 
-## 4. Key Results Summary (Out-of-Sample Evaluation: Slice 3)
+## 5. Key Results Summary (Out-of-Sample Evaluation: Slice 3)
 
 ### Apache ShardingSphere (420 builds, 239 true failures)
 * **Run All (Baseline A):** 100.00% Recall | 0.00% Reduction | -$0.08 Net Savings
