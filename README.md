@@ -91,7 +91,7 @@ ICSE/
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/SohamShrivastava/Commit-Aware.git
+git clone "repo link"
 cd Commit-Aware
 
 # Create virtual environment
